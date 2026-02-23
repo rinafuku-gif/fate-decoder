@@ -783,6 +783,9 @@ export default function FateDecoder() {
         <>
           <div id="result-screen" dangerouslySetInnerHTML={{ __html: resultHtml }} />
           <div className="action-bar">
+            <button onClick={() => { setScreen('input'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
+              もう一度
+            </button>
             <button onClick={handlePrintOrDownload} className="fab fab-print" title={isDownloadingPDF ? 'PDF生成中...' : '印刷/PDF保存'} disabled={isDownloadingPDF}>
               {isDownloadingPDF ? '...' : '印刷'}
             </button>

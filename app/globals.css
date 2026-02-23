@@ -858,6 +858,16 @@ textarea {
   box-shadow: 0 8px 32px var(--c-accent-glow);
 }
 
+.fab-back {
+  background: var(--c-glass);
+  border: 1px solid var(--c-glass-border);
+  color: var(--c-text);
+  box-shadow: var(--shadow-md);
+}
+.fab-back:hover {
+  box-shadow: var(--shadow-lg);
+}
+
 /* ========================================
    5. RESPONSIVE
    ======================================== */

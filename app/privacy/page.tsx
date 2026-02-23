@@ -120,8 +120,8 @@ export default function PrivacyPolicy() {
             </h2>
             <p style={{ opacity: 0.9 }}>
               個人情報の取り扱いに関するお問い合わせは、以下までご連絡ください。<br />
-              運営者：Grand Master AI Novelist 運営事務局<br />
-              {/* ここに実際の連絡先を追加してください */}
+              運営者：SATOYAMA AI BASE<br />
+              連絡先：satoyama-ai-base@tonari2tomaru.com
             </p>
           </section>
 
