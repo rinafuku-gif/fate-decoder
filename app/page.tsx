@@ -775,7 +775,7 @@ export default function FateDecoder() {
               <button type="submit" className="submit-btn">診断する</button>
             </form>
           </div>
-          <p className="input-footer">マヤ暦・算命学・数秘術・西洋占星術・宿曜・血液型の6つの分析をAIが小説形式でお届けします。</p>
+          <p className="input-footer">マヤ暦・算命学・数秘術・西洋占星術・宿曜・四柱推命の6つの占術を用いてリーディングします。</p>
         </div>
       )}
 
