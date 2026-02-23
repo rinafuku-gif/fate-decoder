@@ -31,7 +31,7 @@ export default function PrivacyPolicy() {
               1. 個人情報の収集について
             </h2>
             <p style={{ opacity: 0.9 }}>
-              本サービス「Fate Decoder - AI性格診断」では、運命鑑定のために以下の情報を収集します：
+              本サービス「Fate Decoder - AIパーソナルリーディング」では、運命鑑定のために以下の情報を収集します：
             </p>
             <ul style={{ marginTop: '10px', paddingLeft: '20px' }}>
               <li>お名前（ニックネーム可）</li>

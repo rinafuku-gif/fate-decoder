@@ -669,7 +669,7 @@ export default function FateDecoder() {
     if (typeof window === 'undefined') return
     const name = formData.name || '私'
     const shareData = {
-      title: 'Fate Decoder - 性格診断',
+      title: 'Fate Decoder - AIパーソナルリーディング',
       text: `${name}さんの診断結果`,
       url: window.location.href
     }
@@ -713,7 +713,7 @@ export default function FateDecoder() {
           <div className="input-card">
             <div className="input-header">
               <h1 className="input-title">Fate Decoder</h1>
-              <p className="input-subtitle">6つの占術 × AI で読み解く、あなただけの性格診断</p>
+              <p className="input-subtitle">運命鑑定士 Grand Master が、6つの占術であなたの問いに答えます</p>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -808,7 +808,7 @@ function renderNovel(name: string, data: any, story: any, concern: string): stri
     <div class="result-container">
       <header class="result-header">
         <p class="result-label">Fate Decoder</p>
-        <h1 class="result-name">${name} さんの<br>性格診断レポート</h1>
+        <h1 class="result-name">${name} さんへの<br>Grand Master's Reading</h1>
       </header>
 
       <section class="data-section">
@@ -882,7 +882,7 @@ function renderNovel(name: string, data: any, story: any, concern: string): stri
       </section>
 
       <footer class="result-footer">
-        <p>Fate Decoder - AI性格診断</p>
+        <p>Fate Decoder - AIパーソナルリーディング</p>
       </footer>
     </div>
   `
@@ -930,7 +930,7 @@ function renderPreview(name: string, data: any, concern: string): string {
       </section>
 
       <footer class="result-footer">
-        <p>Fate Decoder - AI性格診断</p>
+        <p>Fate Decoder - AIパーソナルリーディング</p>
       </footer>
     </div>
   `
