@@ -776,6 +776,7 @@ export default function FateDecoder() {
             </form>
           </div>
           <p className="input-footer">マヤ暦・算命学・数秘術・西洋占星術・宿曜・四柱推命の6つの占術を用いてリーディングします。</p>
+          <p className="input-credit">produced by SATOYAMA AI BASE</p>
         </div>
       )}
 

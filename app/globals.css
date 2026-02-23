@@ -465,6 +465,14 @@ textarea {
   margin-top: 28px;
   line-height: 1.7;
 }
+.input-credit {
+  font-size: 0.65rem;
+  color: var(--c-text-muted);
+  opacity: 0.45;
+  text-align: center;
+  margin-top: 32px;
+  letter-spacing: 0.08em;
+}
 
 /* Background processing banner */
 .bg-banner {
