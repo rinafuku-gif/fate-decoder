@@ -291,14 +291,14 @@ export async function saveToNotion(data: {
 
     if (!response.ok) {
       const errorText = await response.text()
-      // Notion API Error
-      throw new Error(`Notion API Error: ${response.status}`)
+      console.error(`[Notion API Error] Status: ${response.status}, Body: ${errorText}`)
+      throw new Error(`Notion API Error: ${response.status} - ${errorText}`)
     }
 
     const result = await response.json()
     return { success: true, pageId: result.id }
   } catch (error) {
-    // Failed to save to Notion
+    console.error('[Notion Save Exception]', error instanceof Error ? error.message : error)
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
 }

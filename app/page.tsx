@@ -590,8 +590,10 @@ export default function FateDecoder() {
       }).then(notionResult => {
         if (notionResult.success && notionResult.pageId) {
           window.history.replaceState({}, '', `${window.location.pathname}?notionId=${notionResult.pageId}`)
+        } else {
+          console.error('[Notion Save Failed]', notionResult.error)
         }
-      }).catch(() => {})
+      }).catch((err) => console.error('[Notion Save Error]', err))
 
     } catch (e) {
       clearTimeout(timeoutId)

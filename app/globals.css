@@ -930,9 +930,16 @@ textarea {
    ======================================== */
 
 @media print {
+  /* === 全体リセット: すべてのテキストを黒に === */
+  *, *::before, *::after {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
   body {
     background: #fff !important;
-    color: #000 !important;
     font-family: "Hiragino Mincho ProN", serif !important;
     line-height: 1.8 !important;
     font-size: 11pt !important;
@@ -949,42 +956,110 @@ textarea {
     padding: 0 !important;
     width: 100% !important;
     max-width: none !important;
+    background: #fff !important;
   }
 
   .result-container {
     padding-top: 0 !important;
+    background: #fff !important;
   }
 
   .result-header {
-    border-bottom-color: #ccc !important;
+    border-bottom: 1px solid #ccc !important;
+    background: none !important;
   }
   .result-header::after {
     display: none !important;
+  }
+
+  .result-label {
+    color: #666 !important;
+    -webkit-text-fill-color: #666 !important;
   }
 
   .result-name {
     color: #000 !important;
     -webkit-text-fill-color: #000 !important;
     background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+  }
+
+  .section-title {
+    color: #333 !important;
+    -webkit-text-fill-color: #333 !important;
+    border-color: #ccc !important;
+  }
+  .section-title::before {
+    display: none !important;
   }
 
   .chapter-section {
     page-break-inside: avoid !important;
-    border-bottom-color: #ccc !important;
+    border-bottom: 1px solid #ccc !important;
+    background: none !important;
   }
   .chapter-section::after {
     display: none !important;
   }
 
+  .chapter-tag {
+    border: 1px solid #999 !important;
+    background: #f5f5f5 !important;
+    color: #333 !important;
+    -webkit-text-fill-color: #333 !important;
+  }
+
+  .chapter-title {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+
+  .chapter-text, .chapter-text p {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+
   .data-card {
-    border-color: #ccc !important;
+    border: 1px solid #ccc !important;
     background: #fff !important;
     backdrop-filter: none !important;
   }
+  .data-card::before {
+    display: none !important;
+  }
 
-  .data-value { color: #000 !important; }
-  .chapter-title { color: #000 !important; }
-  .chapter-tag { border: 1px solid #999 !important; background: #f5f5f5 !important; color: #333 !important; }
+  .data-label {
+    color: #333 !important;
+    -webkit-text-fill-color: #333 !important;
+  }
+
+  .data-sublabel {
+    color: #666 !important;
+    -webkit-text-fill-color: #666 !important;
+  }
+
+  .data-value {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    font-weight: bold !important;
+  }
+
+  .concern-box {
+    background: #f5f5f5 !important;
+    border: 1px solid #ccc !important;
+    backdrop-filter: none !important;
+  }
+
+  .concern-label {
+    color: #555 !important;
+    -webkit-text-fill-color: #555 !important;
+  }
+
+  .concern-text {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+  }
 
   .final-section {
     background: #f8f8f8 !important;
@@ -995,24 +1070,47 @@ textarea {
   }
 
   .magic-box {
-    border-color: #ccc !important;
+    border: 1px solid #ccc !important;
     background: #fff !important;
     backdrop-filter: none !important;
   }
 
-  .concern-box {
-    background: #f5f5f5 !important;
-    backdrop-filter: none !important;
+  .magic-title {
+    color: #333 !important;
+    -webkit-text-fill-color: #333 !important;
+  }
+
+  .magic-box strong {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
   }
 
   .preview-notice {
     background: #f5f5f5 !important;
-    border-color: #ccc !important;
+    border: 1px solid #ccc !important;
     backdrop-filter: none !important;
+  }
+
+  .preview-notice h2, .preview-notice p, .preview-cta p, .preview-cta strong {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+
+  .preview-concern {
+    color: #333 !important;
+    -webkit-text-fill-color: #333 !important;
+  }
+
+  .result-footer {
+    color: #666 !important;
+    -webkit-text-fill-color: #666 !important;
+    border-top: 1px solid #ccc !important;
   }
 
   .input-title {
     -webkit-text-fill-color: #000 !important;
     background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
   }
 }
