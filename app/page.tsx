@@ -717,7 +717,7 @@ export default function FateDecoder() {
               <div className="form-group">
                 <label>生年月日 <span className="required">*</span></label>
                 <div className="row-3">
-                  <input type="number" value={formData.year} onChange={(e) => setFormData({ ...formData, year: e.target.value })} placeholder="1995" style={{ flex: '1.5' }} required />
+                  <input type="number" value={formData.year} onChange={(e) => setFormData({ ...formData, year: e.target.value })} placeholder="1995" required />
                   <select value={formData.month} onChange={(e) => setFormData({ ...formData, month: e.target.value })} required>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (<option key={m} value={m}>{m}月</option>))}
                   </select>
