@@ -4,8 +4,18 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Fate Decoder ─ AI性格診断',
-  description: '生年月日から、宿曜占星術と算命学をベースにAIがあなたの性格と才能を読み解きます。',
+  title: 'Fate Decoder ─ AIパーソナルリーディング',
+  description: '運命鑑定士 Grand Master が、6つの占術であなたの問いに答えます。',
+  openGraph: {
+    title: 'Fate Decoder ─ AIパーソナルリーディング',
+    description: '運命鑑定士 Grand Master が、6つの占術であなたの問いに答えます。',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Fate Decoder ─ AIパーソナルリーディング',
+    description: '運命鑑定士 Grand Master が、6つの占術であなたの問いに答えます。',
+  },
   icons: {
     icon: [
       {
