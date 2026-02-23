@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { generateStory } from './actions'
-import { saveToNotion, fetchStoryFromNotion } from './notion-actions'
+import { fetchStoryFromNotion } from './notion-actions'
 
 // ========================================
 // 1. 占術計算ロジック (修正版 v2 - 全8テスト合格済み)
@@ -580,14 +580,18 @@ export default function FateDecoder() {
       setScreen('result')
       setTimeout(() => window.scrollTo(0, 0), 100)
 
-      saveToNotion({
-        name: formData.name, birthDate, birthTime,
-        bloodType: formData.bloodType, birthPlace: formData.birthPlace,
-        concern: formData.concern, kin: data.maya.kin, glyph: data.maya.glyph,
-        tone: toneNumber, ws: data.maya.ws, stem: data.bazi.stem,
-        weapon: data.bazi.weapon, lp: data.numerology.lp, sign: data.western.sign,
-        sukuyo: data.sukuyo, story
-      }).then(notionResult => {
+      fetch('/api/notion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name, birthDate, birthTime,
+          bloodType: formData.bloodType, birthPlace: formData.birthPlace,
+          concern: formData.concern, kin: data.maya.kin, glyph: data.maya.glyph,
+          tone: toneNumber, ws: data.maya.ws, stem: data.bazi.stem,
+          weapon: data.bazi.weapon, lp: data.numerology.lp, sign: data.western.sign,
+          sukuyo: data.sukuyo, story
+        })
+      }).then(res => res.json()).then(notionResult => {
         if (notionResult.success && notionResult.pageId) {
           window.history.replaceState({}, '', `${window.location.pathname}?notionId=${notionResult.pageId}`)
         } else {
