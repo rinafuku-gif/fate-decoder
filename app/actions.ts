@@ -11,7 +11,7 @@ export async function generateStory(prompt: string): Promise<GenerateResult> {
     return { success: false, error: '神託の鍵が見つかりません。\n\nシステムの設定に問題があるようです。\n運営にお問い合わせください。' }
   }
 
-  const modelName = 'gemini-2.0-flash'
+  const modelName = 'gemini-2.5-flash'
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`
 
   const response = await fetch(url, {
@@ -24,6 +24,9 @@ export async function generateStory(prompt: string): Promise<GenerateResult> {
   })
 
   if (!response.ok) {
+    const errBody = await response.text()
+    console.error(`[Gemini API Error] Status: ${response.status}, Body: ${errBody}`)
+
     if (response.status === 429) {
       return { success: false, error: 'Grand Masterの執筆力が本日の限界に達しました。\n\n明日の夜明けと共に、再びあなたの運命を綴る力が蘇ります。\nどうか星々が新たな力を得るまでお待ちください。', isQuotaError: true }
     }
