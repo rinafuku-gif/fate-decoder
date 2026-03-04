@@ -81,8 +81,16 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
 
-    const NOTION_API_KEY = process.env.NOTION_API_KEY || 'ntn_V40431574219GUgqMrKRCpnpVgLEUoIA9xxfJfisIlu3Ec'
-    const DATABASE_ID = '2f50f0fdafad80c89c82d9260ce171f2'
+    const NOTION_API_KEY = process.env.NOTION_API_KEY
+    const DATABASE_ID = process.env.NOTION_DATABASE_ID
+
+    if (!NOTION_API_KEY || !DATABASE_ID) {
+      console.error('[Notion API Route] Missing NOTION_API_KEY or NOTION_DATABASE_ID env var')
+      return NextResponse.json(
+        { success: false, error: 'Notion configuration missing' },
+        { status: 500 }
+      )
+    }
 
     console.log('[Notion API Route] Saving data for:', data.name)
 
