@@ -13,6 +13,12 @@ interface StoryData {
   final?: StoryChapter
 }
 
+// Notion API limits: rich_text content max 2000 chars
+function truncate(str: string, max = 2000): string {
+  if (str.length <= max) return str
+  return str.slice(0, max - 1) + '…'
+}
+
 function createStoryBlocks(story: StoryData) {
   const blocks: any[] = []
 
@@ -23,7 +29,7 @@ function createStoryBlocks(story: StoryData) {
       object: 'block',
       type: 'callout',
       callout: {
-        rich_text: [{ type: 'text', text: { content: chapter.tag } }],
+        rich_text: [{ type: 'text', text: { content: truncate(chapter.tag) } }],
         icon: { type: 'emoji', emoji: '⭐' },
         color: 'yellow_background'
       }
@@ -33,7 +39,7 @@ function createStoryBlocks(story: StoryData) {
       object: 'block',
       type: 'heading_2',
       heading_2: {
-        rich_text: [{ type: 'text', text: { content: chapter.title }, annotations: { bold: true } }],
+        rich_text: [{ type: 'text', text: { content: truncate(chapter.title) }, annotations: { bold: true } }],
         color: 'default'
       }
     })
@@ -44,7 +50,7 @@ function createStoryBlocks(story: StoryData) {
         object: 'block',
         type: 'paragraph',
         paragraph: {
-          rich_text: [{ type: 'text', text: { content: para.trim() } }]
+          rich_text: [{ type: 'text', text: { content: truncate(para.trim()) } }]
         }
       })
     })
@@ -54,7 +60,7 @@ function createStoryBlocks(story: StoryData) {
         object: 'block',
         type: 'callout',
         callout: {
-          rich_text: [{ type: 'text', text: { content: `🔮 魔法のアクション: ${chapter.magic}` } }],
+          rich_text: [{ type: 'text', text: { content: truncate(`🔮 魔法のアクション: ${chapter.magic}`) } }],
           icon: { type: 'emoji', emoji: '🔮' },
           color: 'purple_background'
         }
@@ -74,7 +80,8 @@ function createStoryBlocks(story: StoryData) {
   }
   addChapter(story.final)
 
-  return blocks
+  // Notion API limits: max 100 children blocks per request
+  return blocks.slice(0, 100)
 }
 
 export async function POST(request: NextRequest) {
@@ -94,6 +101,9 @@ export async function POST(request: NextRequest) {
 
     console.log('[Notion API Route] Saving data for:', data.name)
 
+    const storyBlocks = data.story ? createStoryBlocks(data.story) : []
+    console.log(`[Notion API Route] Story blocks count: ${storyBlocks.length}`)
+
     const response = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST',
       headers: {
@@ -104,7 +114,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         parent: { database_id: DATABASE_ID },
         icon: { type: 'emoji', emoji: '✨' },
-        children: data.story ? createStoryBlocks(data.story) : [],
+        children: storyBlocks,
         properties: {
           '名前': {
             title: [{ type: 'text', text: { content: data.name || '' } }]
@@ -119,10 +129,10 @@ export async function POST(request: NextRequest) {
             select: { name: data.bloodType || 'A' }
           },
           '出生地': {
-            rich_text: [{ type: 'text', text: { content: data.birthPlace || '' } }]
+            rich_text: [{ type: 'text', text: { content: truncate(data.birthPlace || '') } }]
           },
           '相談内容': {
-            rich_text: [{ type: 'text', text: { content: data.concern || '' } }]
+            rich_text: [{ type: 'text', text: { content: truncate(data.concern || '') } }]
           },
           'KIN番号': {
             number: typeof data.kin === 'number' ? data.kin : parseInt(data.kin) || 0
@@ -162,7 +172,7 @@ export async function POST(request: NextRequest) {
       const errorText = await response.text()
       console.error(`[Notion API Error] Status: ${response.status}, Body: ${errorText}`)
       return NextResponse.json(
-        { success: false, error: `Notion API Error: ${response.status}` },
+        { success: false, error: `Notion API Error: ${response.status}`, detail: errorText },
         { status: 500 }
       )
     }

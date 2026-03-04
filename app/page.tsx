@@ -240,7 +240,7 @@ export default function FateDecoder() {
         if (notionResult.success && notionResult.pageId) {
           window.history.replaceState({}, '', `${window.location.pathname}?notionId=${notionResult.pageId}`)
         } else {
-          console.error('[Notion Save Failed]', notionResult.error)
+          console.error('[Notion Save Failed]', notionResult.error, notionResult.detail)
         }
       }).catch((err) => console.error('[Notion Save Error]', err))
 
