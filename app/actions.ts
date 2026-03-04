@@ -11,7 +11,7 @@ export async function generateStory(prompt: string): Promise<GenerateResult> {
     return { success: false, error: '神託の鍵が見つかりません。\n\nシステムの設定に問題があるようです。\n運営にお問い合わせください。' }
   }
 
-  const modelName = 'gemini-flash-latest'
+  const modelName = 'gemini-2.0-flash'
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`
 
   const response = await fetch(url, {
