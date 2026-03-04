@@ -159,8 +159,14 @@ export default function FateDecoder() {
   }
 }
 `
-      const resultText = await generateStory(prompt)
-      let cleanJson = resultText.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim()
+      const result = await generateStory(prompt)
+      if (!result.success) {
+        if (result.isQuotaError) {
+          throw new Error(result.error, { cause: 'quota' })
+        }
+        throw new Error(result.error)
+      }
+      let cleanJson = result.text.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim()
       cleanJson = cleanJson.replace(/^\uFEFF/, '').replace(/^[\s\uFEFF\xA0]+/, '')
       const jsonStart = cleanJson.search(/^[\{\[]/)
       if (jsonStart === -1) {
@@ -240,7 +246,7 @@ export default function FateDecoder() {
 
     } catch (e) {
       clearTimeout(timeoutId)
-      if (e instanceof Error && e.message.includes('執筆力が本日の限界')) {
+      if (e instanceof Error && (e.cause === 'quota' || e.message.includes('執筆力が本日の限界'))) {
         const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day))
         setResultHtml(renderPreview(formData.name, data, formData.concern))
         setScreen('result')
