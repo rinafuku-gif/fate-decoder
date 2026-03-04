@@ -239,10 +239,15 @@ export default function FateDecoder() {
       }).then(res => res.json()).then(notionResult => {
         if (notionResult.success && notionResult.pageId) {
           window.history.replaceState({}, '', `${window.location.pathname}?notionId=${notionResult.pageId}`)
+          console.log('[Notion] Saved OK:', notionResult.pageId)
         } else {
           console.error('[Notion Save Failed]', notionResult.error, notionResult.detail)
+          alert(`[DEBUG] Notion保存エラー: ${notionResult.error}\n${notionResult.detail || ''}`)
         }
-      }).catch((err) => console.error('[Notion Save Error]', err))
+      }).catch((err) => {
+        console.error('[Notion Save Error]', err)
+        alert(`[DEBUG] Notion通信エラー: ${err.message}`)
+      })
 
     } catch (e) {
       clearTimeout(timeoutId)
