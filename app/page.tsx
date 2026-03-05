@@ -242,11 +242,9 @@ export default function FateDecoder() {
           console.log('[Notion] Saved OK:', notionResult.pageId)
         } else {
           console.error('[Notion Save Failed]', notionResult.error, notionResult.detail)
-          alert(`[DEBUG] Notion保存エラー: ${notionResult.error}\n${notionResult.detail || ''}`)
         }
       }).catch((err) => {
         console.error('[Notion Save Error]', err)
-        alert(`[DEBUG] Notion通信エラー: ${err.message}`)
       })
 
     } catch (e) {
