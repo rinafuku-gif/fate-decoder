@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { generateStory } from './actions'
 import { fetchStoryFromNotion } from './notion-actions'
 import { calculateAll } from '../lib/fortune-calc'
+import { generateTarotSpread, type TarotSpreadCard } from '../lib/tarot-data'
 
 
 // ========================================
@@ -24,7 +25,7 @@ const MODE_CONFIG: Record<ReadingMode, { label: string; subtitle: string; descri
     label: 'Tarot Reading',
     subtitle: 'タロット演出 + メッセージ',
     description: '6占術の結果をタロットカードの演出とともにお届け。直感的に響くメッセージで、あなたの今を映し出します。',
-    available: false,
+    available: true,
   },
   short: {
     label: 'Short Reading',
@@ -35,8 +36,13 @@ const MODE_CONFIG: Record<ReadingMode, { label: string; subtitle: string; descri
 }
 
 export default function FateDecoder() {
-  const [screen, setScreen] = useState<'mode-select' | 'input' | 'loading' | 'result'>('mode-select')
+  const [screen, setScreen] = useState<'mode-select' | 'input' | 'loading' | 'result' | 'tarot-result'>('mode-select')
   const [readingMode, setReadingMode] = useState<ReadingMode>('full')
+  const [tarotSpread, setTarotSpread] = useState<TarotSpreadCard[]>([])
+  const [tarotMessages, setTarotMessages] = useState<string[]>([])
+  const [flippedCards, setFlippedCards] = useState<boolean[]>([])
+  const [allRevealed, setAllRevealed] = useState(false)
+  const [tarotUserName, setTarotUserName] = useState('')
   const [formData, setFormData] = useState({
     name: '', year: '', month: '1', day: '1',
     birthHour: '', birthMinute: '',
@@ -115,8 +121,86 @@ export default function FateDecoder() {
     loadFromURL()
   }, [])
 
+  const handleTarotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.name || !formData.year || !formData.month || !formData.day) {
+      alert('お名前と生年月日を入力してください。')
+      return
+    }
+    if (!consentChecked) {
+      alert('診断結果の保存にご同意ください。')
+      return
+    }
+    setScreen('loading')
+
+    try {
+      const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day))
+      const spread = generateTarotSpread(data)
+      setTarotSpread(spread)
+      setTarotUserName(formData.name)
+      setFlippedCards(new Array(spread.length).fill(false))
+      setAllRevealed(false)
+
+      // AI にタロット風メッセージを生成してもらう
+      const tarotPrompt = `
+あなたはタロットリーダーです。占術データに基づいて選ばれた5枚のタロットカードについて、それぞれ個人に寄り添った短いメッセージを書いてください。
+
+【対象者】
+${formData.name} (${formData.year}年${formData.month}月${formData.day}日生まれ)
+
+【占術データ】
+・マヤ暦: KIN${data.maya.kin} / 太陽の紋章:${data.maya.glyph} / 銀河の音:${data.maya.tone}
+・算命学: 日干[${data.bazi.stem}] / 中心星[${data.bazi.weapon}]
+・数秘術: ライフパスナンバー[${data.numerology.lp}]
+・西洋占星術: ${data.western.sign}
+・宿曜: ${data.sukuyo}
+
+【相談内容】
+「${formData.concern || '特になし'}」
+
+【選ばれたカードと配置】
+${spread.map((s, i) => `${i + 1}. ${s.position.label}（${s.position.description}）→ ${s.card.numeral} ${s.card.name}（${s.card.nameEn}）`).join('\n')}
+
+【執筆ルール】
+1. 各カードについて、そのカードの意味と配置の意味と占術データを組み合わせた、80〜120文字の個人的なメッセージを書く
+2. 温かく、詩的で、具体的な言葉を使う。抽象的すぎない
+3. 相談内容があれば、それに寄り添う内容にする
+4. **必ず純粋なJSON形式**で出力（Markdownのバッククォートは不要）
+
+【出力フォーマット】
+{ "messages": ["カード1のメッセージ", "カード2のメッセージ", "カード3のメッセージ", "カード4のメッセージ", "カード5のメッセージ"] }
+`
+
+      let messages: string[] = []
+      try {
+        const resultText = await generateStory(tarotPrompt)
+        let cleanJson = resultText.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim()
+        cleanJson = cleanJson.replace(/^\uFEFF/, '').replace(/^[\s\uFEFF\xA0]+/, '')
+        const firstBrace = cleanJson.indexOf('{')
+        if (firstBrace !== -1) cleanJson = cleanJson.substring(firstBrace)
+        const lastBrace = cleanJson.lastIndexOf('}')
+        if (lastBrace !== -1) cleanJson = cleanJson.substring(0, lastBrace + 1)
+        const parsed = JSON.parse(cleanJson)
+        messages = parsed.messages || []
+      } catch {
+        // AI失敗時はカードのデフォルトメッセージを使用
+        messages = spread.map(s => s.card.meaning)
+      }
+      setTarotMessages(messages.length === spread.length ? messages : spread.map(s => s.card.meaning))
+      setScreen('tarot-result')
+      setTimeout(() => window.scrollTo(0, 0), 100)
+
+    } catch {
+      alert('診断中にエラーが発生しました。もう一度お試しください。')
+      setScreen('input')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (readingMode === 'tarot') {
+      return handleTarotSubmit(e)
+    }
     if (!formData.name || !formData.year || !formData.month || !formData.day) {
       alert('お名前と生年月日を入力してください。')
       return
@@ -349,6 +433,22 @@ export default function FateDecoder() {
     }
   }
 
+  const handleFlipCard = (index: number) => {
+    if (flippedCards[index]) return
+    const newFlipped = [...flippedCards]
+    newFlipped[index] = true
+    setFlippedCards(newFlipped)
+    if (newFlipped.every(Boolean)) {
+      setTimeout(() => setAllRevealed(true), 800)
+    }
+  }
+
+  const handleRevealAll = () => {
+    const newFlipped = new Array(tarotSpread.length).fill(true)
+    setFlippedCards(newFlipped)
+    setTimeout(() => setAllRevealed(true), 800)
+  }
+
   const handleModeSelect = (mode: ReadingMode) => {
     if (!MODE_CONFIG[mode].available) return
     setReadingMode(mode)
@@ -392,8 +492,18 @@ export default function FateDecoder() {
       {screen === 'loading' && (
         <div className="loading-screen">
           <div className="loading-spinner" />
-          <div className="loading-text">AIがあなたの<br />診断レポートを作成中...</div>
-          <p className="loading-desc">あなただけのレポートを執筆しています<br />(30〜60秒ほどかかります)</p>
+          <div className="loading-text">
+            {readingMode === 'tarot'
+              ? <>カードを<br />シャッフルしています...</>
+              : <>AIがあなたの<br />診断レポートを作成中...</>
+            }
+          </div>
+          <p className="loading-desc">
+            {readingMode === 'tarot'
+              ? 'あなたのために5枚のカードを選んでいます'
+              : <>あなただけのレポートを執筆しています<br />(30〜60秒ほどかかります)</>
+            }
+          </p>
         </div>
       )}
 
@@ -475,6 +585,81 @@ export default function FateDecoder() {
           </div>
           <p className="input-footer">マヤ暦・算命学・数秘術・西洋占星術・宿曜・四柱推命の6つの占術を用いてリーディングします。</p>
           <p className="input-credit">produced by SATOYAMA AI BASE</p>
+        </div>
+      )}
+
+      {screen === 'tarot-result' && (
+        <div className="tarot-result-screen">
+          <header className="tarot-header">
+            <p className="result-label">Fate Decoder</p>
+            <h1 className="tarot-title">{tarotUserName} さんの<br />Tarot Reading</h1>
+            <p className="tarot-instruction">
+              {allRevealed ? 'すべてのカードが開かれました' : 'カードをタップして、あなたへのメッセージを受け取ってください'}
+            </p>
+            {!allRevealed && (
+              <button className="reveal-all-btn" onClick={handleRevealAll}>すべてめくる</button>
+            )}
+          </header>
+
+          <div className="tarot-spread">
+            {tarotSpread.map((item, i) => (
+              <div key={i} className="tarot-slot">
+                <span className="tarot-position-label">{item.position.label}</span>
+                <div
+                  className={`tarot-card-container ${flippedCards[i] ? 'is-flipped' : ''}`}
+                  onClick={() => handleFlipCard(i)}
+                >
+                  <div className="tarot-card-inner">
+                    <div className="tarot-card-back">
+                      <div className="tarot-card-back-design">
+                        <span className="tarot-card-back-symbol">&#x2726;</span>
+                      </div>
+                    </div>
+                    <div className="tarot-card-front">
+                      <span className="tarot-card-numeral">{item.card.numeral}</span>
+                      <span className="tarot-card-name">{item.card.name}</span>
+                      <span className="tarot-card-name-en">{item.card.nameEn}</span>
+                      <span className="tarot-card-keyword">{item.card.keyword}</span>
+                    </div>
+                  </div>
+                </div>
+                {flippedCards[i] && (
+                  <div className="tarot-message-box">
+                    <p className="tarot-message">{tarotMessages[i] || item.card.meaning}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {allRevealed && (
+            <div className="tarot-summary">
+              <div className="tarot-summary-inner">
+                <h2 className="tarot-summary-title">5枚のカードが示すもの</h2>
+                <p className="tarot-summary-text">
+                  あなたの本質から導きまで、6つの占術が選んだ5枚のカードが揃いました。
+                  これらのメッセージは、今のあなたに最も響く言葉として届いています。
+                </p>
+                <p className="tarot-summary-cta">
+                  より詳しいリーディングは <strong>Full Reading</strong> モードで、
+                  AIが6000文字超の詳細レポートを執筆します。
+                </p>
+              </div>
+            </div>
+          )}
+
+          <footer className="result-footer">
+            <p>Fate Decoder - Tarot Reading</p>
+          </footer>
+
+          <div className="action-bar">
+            <button onClick={() => { setScreen('mode-select'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
+              もう一度
+            </button>
+            <button onClick={handleShare} className="fab fab-share" title="シェア">
+              共有
+            </button>
+          </div>
         </div>
       )}
 
