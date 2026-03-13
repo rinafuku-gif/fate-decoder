@@ -11,8 +11,32 @@ import { calculateAll } from '../lib/fortune-calc'
 // 2. React UI - モダン・ミニマルデザイン
 // ========================================
 
+export type ReadingMode = 'full' | 'tarot' | 'short'
+
+const MODE_CONFIG: Record<ReadingMode, { label: string; subtitle: string; description: string; available: boolean }> = {
+  full: {
+    label: 'Full Reading',
+    subtitle: '6占術 + AI物語',
+    description: 'マヤ暦・算命学・数秘術・西洋占星術・宿曜・四柱推命の6つの占術で、あなただけの詳細レポートをAIが執筆します。',
+    available: true,
+  },
+  tarot: {
+    label: 'Tarot Reading',
+    subtitle: 'タロット演出 + メッセージ',
+    description: '6占術の結果をタロットカードの演出とともにお届け。直感的に響くメッセージで、あなたの今を映し出します。',
+    available: false,
+  },
+  short: {
+    label: 'Short Reading',
+    subtitle: 'サクッと診断',
+    description: '3分でわかる、あなたの本質。6占術の核心だけをコンパクトにまとめた要約版リーディング。',
+    available: false,
+  },
+}
+
 export default function FateDecoder() {
-  const [screen, setScreen] = useState<'input' | 'loading' | 'result'>('input')
+  const [screen, setScreen] = useState<'mode-select' | 'input' | 'loading' | 'result'>('mode-select')
+  const [readingMode, setReadingMode] = useState<ReadingMode>('full')
   const [formData, setFormData] = useState({
     name: '', year: '', month: '1', day: '1',
     birthHour: '', birthMinute: '',
@@ -72,6 +96,7 @@ export default function FateDecoder() {
       const month = params.get('month')
       const day = params.get('day')
       if (name && year && month && day) {
+        setReadingMode('full')
         setFormData({
           name: decodeURIComponent(name), year, month, day,
           birthHour: params.get('birthHour') || '',
@@ -324,8 +349,39 @@ export default function FateDecoder() {
     }
   }
 
+  const handleModeSelect = (mode: ReadingMode) => {
+    if (!MODE_CONFIG[mode].available) return
+    setReadingMode(mode)
+    setScreen('input')
+  }
+
   return (
     <>
+      {screen === 'mode-select' && (
+        <div className="mode-select-screen">
+          <div className="mode-select-header">
+            <h1 className="mode-select-title">Fate Decoder</h1>
+            <p className="mode-select-subtitle">あなたに合ったリーディングを選んでください</p>
+          </div>
+          <div className="mode-select-grid">
+            {(Object.entries(MODE_CONFIG) as [ReadingMode, typeof MODE_CONFIG[ReadingMode]][]).map(([key, config]) => (
+              <button
+                key={key}
+                className={`mode-card ${key === 'full' ? 'mode-card-primary' : ''} ${!config.available ? 'mode-card-disabled' : ''}`}
+                onClick={() => handleModeSelect(key)}
+                disabled={!config.available}
+              >
+                {!config.available && <span className="mode-badge">Coming Soon</span>}
+                <span className="mode-label">{config.label}</span>
+                <span className="mode-card-subtitle">{config.subtitle}</span>
+                <span className="mode-description">{config.description}</span>
+              </button>
+            ))}
+          </div>
+          <p className="input-credit">produced by SATOYAMA AI BASE</p>
+        </div>
+      )}
+
       {isProcessingInBackground && (
         <div className="bg-banner">
           <div className="bg-banner-title">AIが文章を作成しています...</div>
@@ -350,9 +406,12 @@ export default function FateDecoder() {
             </div>
           )}
           <div className="input-card">
+            <button className="back-to-mode" onClick={() => { setScreen('mode-select'); window.scrollTo(0, 0) }}>
+              &larr; リーディング選択に戻る
+            </button>
             <div className="input-header">
               <h1 className="input-title">Fate Decoder</h1>
-              <p className="input-subtitle">運命鑑定士 Grand Master が、6つの占術であなたの問いに答えます</p>
+              <p className="input-subtitle">{MODE_CONFIG[readingMode].label} — {MODE_CONFIG[readingMode].subtitle}</p>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -423,7 +482,7 @@ export default function FateDecoder() {
         <>
           <div id="result-screen" dangerouslySetInnerHTML={{ __html: resultHtml }} />
           <div className="action-bar">
-            <button onClick={() => { setScreen('input'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
+            <button onClick={() => { setScreen('mode-select'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
               もう一度
             </button>
             <button onClick={handlePrintOrDownload} className="fab fab-print" title={isDownloadingPDF ? 'PDF生成中...' : '印刷/PDF保存'} disabled={isDownloadingPDF}>

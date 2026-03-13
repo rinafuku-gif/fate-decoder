@@ -138,6 +138,166 @@ body::after {
 }
 
 /* ========================================
+   0. MODE SELECT SCREEN
+   ======================================== */
+
+.mode-select-screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--c-bg);
+  position: relative;
+  z-index: 1;
+}
+
+.mode-select-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.mode-select-title {
+  font-family: var(--font-serif);
+  font-size: 2.4rem;
+  font-weight: 700;
+  margin: 0 0 14px;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, var(--c-text-bright), var(--c-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.mode-select-subtitle {
+  font-size: 0.9rem;
+  color: var(--c-text-sub);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.mode-select-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 28px 28px;
+  background: var(--c-glass);
+  border: 1px solid var(--c-glass-border);
+  border-radius: 16px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.3s;
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-card:hover:not(.mode-card-disabled) {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 30px var(--c-accent-glow), var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.mode-card-primary {
+  border-color: rgba(201, 168, 76, 0.25);
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.08), var(--c-glass));
+}
+
+.mode-card-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-accent), transparent);
+  opacity: 0.4;
+}
+
+.mode-card-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mode-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  background: rgba(108, 99, 255, 0.15);
+  color: var(--c-indigo);
+  border: 1px solid rgba(108, 99, 255, 0.2);
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.mode-label {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--c-text-bright);
+  letter-spacing: 0.04em;
+  display: block;
+}
+
+.mode-card-subtitle {
+  font-size: 0.78rem;
+  color: var(--c-accent);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+  display: block;
+}
+
+.mode-description {
+  font-size: 0.82rem;
+  color: var(--c-text-sub);
+  line-height: 1.7;
+  margin-top: 10px;
+  display: block;
+}
+
+/* Back to mode select button */
+.back-to-mode {
+  background: none;
+  border: none;
+  color: var(--c-text-sub);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 20px;
+  font-family: var(--font-sans);
+  transition: color 0.2s;
+  align-self: flex-start;
+}
+.back-to-mode:hover {
+  color: var(--c-accent);
+}
+
+@media (max-width: 600px) {
+  .mode-select-title {
+    font-size: 1.8rem;
+  }
+  .mode-card {
+    padding: 22px 20px;
+  }
+  .mode-label {
+    font-size: 1.1rem;
+  }
+}
+
+/* ========================================
    1. LOADING SCREEN
    ======================================== */
 
@@ -967,7 +1127,7 @@ textarea {
     display: none !important;
   }
 
-  .input-screen, .loading-screen, .action-bar, .bg-banner { display: none !important; }
+  .mode-select-screen, .input-screen, .loading-screen, .action-bar, .bg-banner { display: none !important; }
 
   #result-screen {
     display: block !important;
