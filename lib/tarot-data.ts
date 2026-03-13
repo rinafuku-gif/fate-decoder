@@ -47,11 +47,9 @@ export interface TarotSpreadPosition {
 }
 
 export const SPREAD_POSITIONS: TarotSpreadPosition[] = [
-  { position: 'core',      label: '本質',     description: 'あなたの魂の核心' },
-  { position: 'inner',     label: '内なる力', description: '隠された才能と可能性' },
-  { position: 'action',    label: '行動',     description: 'あなたの動き方の特徴' },
-  { position: 'challenge', label: '課題',     description: '今向き合うべきテーマ' },
-  { position: 'guidance',  label: '導き',     description: '星々からのメッセージ' },
+  { position: 'core',     label: 'あなたの本質',  description: '生まれ持った魂の性質' },
+  { position: 'current',  label: '今の流れ',      description: '今あなたに働いている力' },
+  { position: 'guidance', label: '導き',           description: '星々からのメッセージ' },
 ]
 
 // ========================================
@@ -154,33 +152,26 @@ function mapKinToArcana(kin: number): TarotCard {
 }
 
 /**
- * 占術結果から5枚のタロットスプレッドを生成
- * 同じカードが重複しないよう調整
+ * 占術結果から3枚のタロットスプレッドを生成
+ * 本質 / 今の流れ / 導き の3枚構成
  */
 export function generateTarotSpread(data: {
   maya: { kin: number; glyph: string }
   numerology: { lp: string }
   bazi: { weapon: string }
-  western: { sign: string }
 }): TarotSpreadCard[] {
   const cards: TarotCard[] = [
-    mapLifePathToArcana(data.numerology.lp),
-    mapGlyphToArcana(data.maya.glyph),
-    mapMainStarToArcana(data.bazi.weapon),
-    mapSignToArcana(data.western.sign),
-    mapKinToArcana(data.maya.kin),
+    mapLifePathToArcana(data.numerology.lp),   // 本質: 数秘術
+    mapGlyphToArcana(data.maya.glyph),          // 今の流れ: マヤ暦
+    mapMainStarToArcana(data.bazi.weapon),      // 導き: 算命学
   ]
 
-  // 重複排除: 後ろのカードが前と被ったらずらす
+  // 重複排除
   const usedNumbers = new Set<number>()
   for (let i = 0; i < cards.length; i++) {
-    let card = cards[i]
-    if (usedNumbers.has(card.number)) {
-      // 次のカードにずらす
-      let next = (card.number + 1) % 22
-      while (usedNumbers.has(next)) {
-        next = (next + 1) % 22
-      }
+    if (usedNumbers.has(cards[i].number)) {
+      let next = (cards[i].number + 1) % 22
+      while (usedNumbers.has(next)) next = (next + 1) % 22
       cards[i] = MAJOR_ARCANA[next]
     }
     usedNumbers.add(cards[i].number)
