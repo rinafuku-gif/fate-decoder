@@ -1613,38 +1613,57 @@ textarea {
   letter-spacing: 0.04em;
 }
 
-/* Short Summary */
-.short-summary {
-  margin-bottom: 24px;
+/* Short Readings — 3 sections */
+.short-readings {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 28px;
 }
 
-.short-summary-inner {
+.short-reading-card {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(201, 168, 76, 0.03));
   border: 1px solid rgba(201, 168, 76, 0.12);
   border-radius: 16px;
-  padding: 32px 28px;
+  padding: 28px 28px;
+  position: relative;
 }
 
-.short-summary-title {
+.short-reading-icon {
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--c-accent);
+  opacity: 0.5;
+  margin-bottom: 10px;
+}
+
+.short-reading-title {
   font-family: var(--font-serif);
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--c-text-bright);
-  margin: 0 0 18px;
+  margin: 0 0 14px;
   text-align: center;
+  letter-spacing: 0.06em;
 }
 
-.short-summary-text {
-  font-size: 0.92rem;
+.short-reading-text {
+  font-size: 0.9rem;
   line-height: 2.1;
   color: var(--c-text);
   margin: 0;
 }
 
-/* Short Action */
-.short-action {
-  margin-bottom: 32px;
+/* Short Bottom Cards */
+.short-bottom-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
 }
+
+/* Short Action */
+.short-action {}
 
 .short-action-inner {
   display: flex;
@@ -1670,6 +1689,35 @@ textarea {
 .short-action-value {
   font-family: var(--font-serif);
   font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--c-text-bright);
+  line-height: 1.6;
+}
+
+/* Short Lucky */
+.short-lucky-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--c-glass);
+  border: 1px solid var(--c-glass-border);
+  border-radius: 14px;
+  padding: 24px;
+  backdrop-filter: blur(8px);
+}
+
+.short-lucky-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--c-indigo);
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+}
+
+.short-lucky-value {
+  font-family: var(--font-serif);
+  font-size: 1rem;
   font-weight: 700;
   color: var(--c-text-bright);
   line-height: 1.6;
@@ -1704,11 +1752,14 @@ textarea {
   .short-oneword-value {
     font-size: 1.5rem;
   }
-  .short-summary-inner {
-    padding: 24px 20px;
+  .short-reading-card {
+    padding: 22px 20px;
   }
-  .short-summary-text {
+  .short-reading-text {
     font-size: 0.85rem;
+  }
+  .short-bottom-cards {
+    grid-template-columns: 1fr;
   }
 }
 
