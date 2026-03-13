@@ -31,18 +31,19 @@ const MODE_CONFIG: Record<ReadingMode, { label: string; subtitle: string; descri
     label: 'Short Reading',
     subtitle: 'サクッと診断',
     description: '3分でわかる、あなたの本質。6占術の核心だけをコンパクトにまとめた要約版リーディング。',
-    available: false,
+    available: true,
   },
 }
 
 export default function FateDecoder() {
-  const [screen, setScreen] = useState<'mode-select' | 'input' | 'loading' | 'result' | 'tarot-result'>('mode-select')
+  const [screen, setScreen] = useState<'mode-select' | 'input' | 'loading' | 'result' | 'tarot-result' | 'short-result'>('mode-select')
   const [readingMode, setReadingMode] = useState<ReadingMode>('full')
   const [tarotSpread, setTarotSpread] = useState<TarotSpreadCard[]>([])
   const [tarotMessages, setTarotMessages] = useState<string[]>([])
   const [flippedCards, setFlippedCards] = useState<boolean[]>([])
   const [allRevealed, setAllRevealed] = useState(false)
   const [tarotUserName, setTarotUserName] = useState('')
+  const [shortResult, setShortResult] = useState<{ data: any; name: string; summary: string; action: string; oneWord: string } | null>(null)
   const [formData, setFormData] = useState({
     name: '', year: '', month: '1', day: '1',
     birthHour: '', birthMinute: '',
@@ -210,10 +211,87 @@ ${spread.map((s, i) => `${i + 1}. 【${s.position.label}】（${s.position.descr
     }
   }
 
+  const handleShortSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.name || !formData.year || !formData.month || !formData.day) {
+      alert('お名前と生年月日を入力してください。')
+      return
+    }
+    if (!consentChecked) {
+      alert('診断結果の保存にご同意ください。')
+      return
+    }
+    setScreen('loading')
+
+    try {
+      const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day))
+
+      const shortPrompt = `
+あなたは占術データを読み解くプロの鑑定士です。
+6つの占術データから、この人の「核心」だけを短く鋭く伝えてください。
+
+【対象者】
+${formData.name} (${formData.year}年${formData.month}月${formData.day}日生まれ)
+
+【占術データ】
+・マヤ暦: KIN${data.maya.kin} / 太陽の紋章:${data.maya.glyph} / 銀河の音:${data.maya.tone} / ウェイブスペル:${data.maya.ws}
+・算命学: 日干[${data.bazi.stem}] / 中心星[${data.bazi.weapon}]
+・数秘術: ライフパスナンバー[${data.numerology.lp}]
+・西洋占星術: ${data.western.sign}
+・宿曜: ${data.sukuyo}
+
+【相談内容】
+「${formData.concern || '特になし'}」
+
+【執筆ルール】
+1. summaryは300〜400文字。この人の本質を3つの視点（性格の核心・人間関係の特徴・仕事/才能の方向性）で簡潔に伝える
+2. 「〜ではないでしょうか」のような問いかけを1つ入れる
+3. 占術データの具体的な要素を自然に2〜3個織り込む（例：「マヤ暦の"赤い竜"を持つあなたは…」）
+4. 相談内容があればそれに対する短い回答を含める
+5. actionは「今日からできる具体的な行動」を1つ、15〜30文字で
+6. oneWordは「あなたを一言で表すなら」を10文字以内で
+7. **必ず純粋なJSON形式で出力**
+
+【出力フォーマット】
+{ "summary": "要約テキスト", "action": "具体的なアクション", "oneWord": "一言キーワード" }
+`
+
+      let summary = ''
+      let action = '自分を信じて一歩踏み出す'
+      let oneWord = '探求者'
+      try {
+        const resultText = await generateStory(shortPrompt)
+        let cleanJson = resultText.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim()
+        cleanJson = cleanJson.replace(/^\uFEFF/, '').replace(/^[\s\uFEFF\xA0]+/, '')
+        const firstBrace = cleanJson.indexOf('{')
+        if (firstBrace !== -1) cleanJson = cleanJson.substring(firstBrace)
+        const lastBrace = cleanJson.lastIndexOf('}')
+        if (lastBrace !== -1) cleanJson = cleanJson.substring(0, lastBrace + 1)
+        const parsed = JSON.parse(cleanJson)
+        summary = parsed.summary || ''
+        action = parsed.action || action
+        oneWord = parsed.oneWord || oneWord
+      } catch {
+        summary = `${data.maya.glyph}の紋章と${data.western.sign}を持つあなたは、${data.bazi.weapon}の力で道を切り開く人。直感と論理のバランスが取れた、稀有な存在です。`
+      }
+
+      setShortResult({ data, name: formData.name, summary, action, oneWord })
+      setScreen('short-result')
+      setTimeout(() => window.scrollTo(0, 0), 100)
+
+    } catch {
+      alert('診断中にエラーが発生しました。もう一度お試しください。')
+      setScreen('input')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (readingMode === 'tarot') {
       return handleTarotSubmit(e)
+    }
+    if (readingMode === 'short') {
+      return handleShortSubmit(e)
     }
     if (!formData.name || !formData.year || !formData.month || !formData.day) {
       alert('お名前と生年月日を入力してください。')
@@ -503,21 +581,43 @@ ${spread.map((s, i) => `${i + 1}. 【${s.position.label}】（${s.position.descr
         </div>
       )}
 
-      {screen === 'loading' && (
+      {screen === 'loading' && readingMode === 'tarot' && (
+        <div className="tarot-loading-screen">
+          <div className="tarot-loading-particles" aria-hidden="true">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span key={i} className="tarot-loading-particle" style={{
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${4 + Math.random() * 6}s`,
+              }} />
+            ))}
+          </div>
+          <div className="tarot-loading-cards" aria-hidden="true">
+            <div className="tarot-loading-card tl-card-1" />
+            <div className="tarot-loading-card tl-card-2" />
+            <div className="tarot-loading-card tl-card-3" />
+          </div>
+          <div className="tarot-loading-glow" aria-hidden="true" />
+          <div className="tarot-loading-text">
+            カードを<br />シャッフルしています
+          </div>
+          <p className="tarot-loading-desc">あなたのために3枚のカードを選んでいます</p>
+        </div>
+      )}
+
+      {screen === 'loading' && readingMode === 'short' && (
         <div className="loading-screen">
           <div className="loading-spinner" />
-          <div className="loading-text">
-            {readingMode === 'tarot'
-              ? <>カードを<br />シャッフルしています...</>
-              : <>AIがあなたの<br />診断レポートを作成中...</>
-            }
-          </div>
-          <p className="loading-desc">
-            {readingMode === 'tarot'
-              ? 'あなたのために3枚のカードを選んでいます'
-              : <>あなただけのレポートを執筆しています<br />(30〜60秒ほどかかります)</>
-            }
-          </p>
+          <div className="loading-text">サクッと<br />診断中...</div>
+          <p className="loading-desc">あなたの本質を読み解いています</p>
+        </div>
+      )}
+
+      {screen === 'loading' && readingMode === 'full' && (
+        <div className="loading-screen">
+          <div className="loading-spinner" />
+          <div className="loading-text">AIがあなたの<br />診断レポートを作成中...</div>
+          <p className="loading-desc">あなただけのレポートを執筆しています<br />(30〜60秒ほどかかります)</p>
         </div>
       )}
 
@@ -706,6 +806,71 @@ ${spread.map((s, i) => `${i + 1}. 【${s.position.label}】（${s.position.descr
 
           <footer className="result-footer">
             <p>Fate Decoder - Tarot Reading</p>
+          </footer>
+
+          <div className="action-bar">
+            <button onClick={() => { setScreen('mode-select'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
+              もう一度
+            </button>
+            <button onClick={handleShare} className="fab fab-share" title="シェア">
+              共有
+            </button>
+          </div>
+        </div>
+      )}
+
+      {screen === 'short-result' && shortResult && (
+        <div className="short-result-screen">
+          <header className="short-header">
+            <p className="result-label">Fate Decoder</p>
+            <h1 className="short-title">{shortResult.name} さんの<br />Short Reading</h1>
+            <div className="short-header-line" />
+          </header>
+
+          <div className="short-oneword">
+            <span className="short-oneword-label">あなたを一言で表すなら</span>
+            <span className="short-oneword-value">{shortResult.oneWord}</span>
+          </div>
+
+          <section className="short-data">
+            <h2 className="short-section-title">あなたの診断データ</h2>
+            <div className="data-grid">
+              <div className="data-card"><span className="data-label">KIN番号</span><span className="data-sublabel">マヤ暦</span><span className="data-value">{shortResult.data.maya.kin}</span></div>
+              <div className="data-card"><span className="data-label">太陽の紋章</span><span className="data-sublabel">表の自分</span><span className="data-value">{shortResult.data.maya.glyph}</span></div>
+              <div className="data-card"><span className="data-label">ウェイブスペル</span><span className="data-sublabel">内なる自分</span><span className="data-value">{shortResult.data.maya.ws}</span></div>
+              <div className="data-card"><span className="data-label">銀河の音</span><span className="data-sublabel">役割・才能</span><span className="data-value">{shortResult.data.maya.tone}</span></div>
+              <div className="data-card"><span className="data-label">ライフパス</span><span className="data-sublabel">数秘術</span><span className="data-value">{shortResult.data.numerology.lp}</span></div>
+              <div className="data-card"><span className="data-label">日干</span><span className="data-sublabel">生まれ持った性質</span><span className="data-value">{shortResult.data.bazi.stem}</span></div>
+              <div className="data-card"><span className="data-label">中心星</span><span className="data-sublabel">行動パターン</span><span className="data-value">{shortResult.data.bazi.weapon}</span></div>
+              <div className="data-card"><span className="data-label">星座</span><span className="data-sublabel">西洋占星術</span><span className="data-value">{shortResult.data.western.sign}</span></div>
+              <div className="data-card"><span className="data-label">宿曜</span><span className="data-sublabel">東洋の星座</span><span className="data-value">{shortResult.data.sukuyo}</span></div>
+            </div>
+          </section>
+
+          <section className="short-summary">
+            <div className="short-summary-inner">
+              <h2 className="short-summary-title">あなたの本質</h2>
+              <p className="short-summary-text">{shortResult.summary}</p>
+            </div>
+          </section>
+
+          <section className="short-action">
+            <div className="short-action-inner">
+              <span className="short-action-label">今日からできるアクション</span>
+              <span className="short-action-value">{shortResult.action}</span>
+            </div>
+          </section>
+
+          <div className="short-upgrade">
+            <p className="short-upgrade-text">
+              もっと深く知りたい方は<br />
+              <strong>Full Reading</strong>（6000文字超の詳細レポート）や<br />
+              <strong>Tarot Reading</strong>（カード演出付き）もお試しください。
+            </p>
+          </div>
+
+          <footer className="result-footer">
+            <p>Fate Decoder - Short Reading</p>
           </footer>
 
           <div className="action-bar">

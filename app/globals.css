@@ -1519,6 +1519,200 @@ textarea {
 }
 
 /* ========================================
+   3.5.5 SHORT RESULT SCREEN
+   ======================================== */
+
+.short-result-screen {
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 48px 20px 160px;
+  position: relative;
+  z-index: 1;
+}
+
+.short-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.short-title {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0 0 16px;
+  background: linear-gradient(135deg, var(--c-text-bright) 30%, var(--c-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.short-header-line {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-accent), transparent);
+  margin: 0 auto;
+}
+
+/* One Word */
+.short-oneword {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 36px;
+  padding: 28px 20px;
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.08), rgba(108, 99, 255, 0.04));
+  border: 1px solid rgba(201, 168, 76, 0.18);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.short-oneword::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-accent), transparent);
+  opacity: 0.3;
+}
+
+.short-oneword-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--c-text-sub);
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+}
+
+.short-oneword-value {
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--c-accent);
+  text-shadow: 0 0 30px rgba(201, 168, 76, 0.2);
+  letter-spacing: 0.1em;
+}
+
+/* Short Data */
+.short-data {
+  margin-bottom: 32px;
+}
+
+.short-section-title {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-text-bright);
+  margin: 0 0 18px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+/* Short Summary */
+.short-summary {
+  margin-bottom: 24px;
+}
+
+.short-summary-inner {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(201, 168, 76, 0.03));
+  border: 1px solid rgba(201, 168, 76, 0.12);
+  border-radius: 16px;
+  padding: 32px 28px;
+}
+
+.short-summary-title {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--c-text-bright);
+  margin: 0 0 18px;
+  text-align: center;
+}
+
+.short-summary-text {
+  font-size: 0.92rem;
+  line-height: 2.1;
+  color: var(--c-text);
+  margin: 0;
+}
+
+/* Short Action */
+.short-action {
+  margin-bottom: 32px;
+}
+
+.short-action-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--c-glass);
+  border: 1px solid var(--c-glass-border);
+  border-radius: 14px;
+  padding: 24px;
+  backdrop-filter: blur(8px);
+}
+
+.short-action-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--c-accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.short-action-value {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--c-text-bright);
+  line-height: 1.6;
+}
+
+/* Upgrade CTA */
+.short-upgrade {
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 24px;
+  background: var(--c-surface);
+  border-radius: 14px;
+  border: 1px solid var(--c-border);
+}
+
+.short-upgrade-text {
+  font-size: 0.82rem;
+  line-height: 1.9;
+  color: var(--c-text-sub);
+  margin: 0;
+}
+
+.short-upgrade-text strong {
+  color: var(--c-accent);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .short-title {
+    font-size: 1.3rem;
+  }
+  .short-oneword-value {
+    font-size: 1.5rem;
+  }
+  .short-summary-inner {
+    padding: 24px 20px;
+  }
+  .short-summary-text {
+    font-size: 0.85rem;
+  }
+}
+
+/* ========================================
    3.6 TAROT LOADING SCREEN
    ======================================== */
 
@@ -1933,7 +2127,7 @@ textarea {
     display: none !important;
   }
 
-  .mode-select-screen, .input-screen, .loading-screen, .action-bar, .bg-banner, .tarot-result-screen { display: none !important; }
+  .mode-select-screen, .input-screen, .loading-screen, .action-bar, .bg-banner, .tarot-result-screen, .short-result-screen { display: none !important; }
 
   #result-screen {
     display: block !important;
