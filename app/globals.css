@@ -1519,6 +1519,268 @@ textarea {
 }
 
 /* ========================================
+   3.6 TAROT LOADING SCREEN
+   ======================================== */
+
+.tarot-loading-screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- 浮遊パーティクル（ローディング用） --- */
+.tarot-loading-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.tarot-loading-particle {
+  position: absolute;
+  bottom: -10px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: tlParticleRise linear infinite;
+}
+
+.tarot-loading-particle:nth-child(odd) {
+  background: var(--c-accent);
+  box-shadow: 0 0 8px var(--c-accent), 0 0 16px rgba(201, 168, 76, 0.4);
+}
+
+.tarot-loading-particle:nth-child(even) {
+  background: rgba(108, 99, 255, 0.8);
+  box-shadow: 0 0 8px rgba(108, 99, 255, 0.6);
+  width: 3px;
+  height: 3px;
+}
+
+@keyframes tlParticleRise {
+  0% {
+    transform: translateY(0) translateX(0) scale(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+    transform: translateY(-10vh) translateX(10px) scale(1);
+  }
+  85% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(-20px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* --- 3枚のカードがシャッフルされるアニメ --- */
+.tarot-loading-cards {
+  position: relative;
+  width: 160px;
+  height: 240px;
+  z-index: 1;
+  margin-bottom: 40px;
+}
+
+.tarot-loading-card {
+  position: absolute;
+  width: 120px;
+  height: 192px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #12152a 0%, #0a0d1a 50%, #151830 100%);
+  border: 1.5px solid rgba(201, 168, 76, 0.4);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(201, 168, 76, 0.08),
+    inset 0 0 40px rgba(201, 168, 76, 0.02);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 裏面の模様（ローディングカード共通） */
+.tarot-loading-card::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(201, 168, 76, 0.15);
+  border-radius: 8px;
+}
+
+.tarot-loading-card::after {
+  content: '✦';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.4rem;
+  color: var(--c-accent);
+  opacity: 0.35;
+  text-shadow: 0 0 20px rgba(201, 168, 76, 0.3);
+}
+
+/* 各カードのシャッフル軌道 */
+.tl-card-1 {
+  animation: tlShuffle1 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  z-index: 3;
+}
+
+.tl-card-2 {
+  animation: tlShuffle2 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) 0.15s infinite;
+  z-index: 2;
+}
+
+.tl-card-3 {
+  animation: tlShuffle3 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) 0.3s infinite;
+  z-index: 1;
+}
+
+@keyframes tlShuffle1 {
+  0%, 100% {
+    transform: translate(-50%, -50%) rotate(0deg);
+    z-index: 3;
+  }
+  20% {
+    transform: translate(-110%, -50%) rotate(-12deg);
+    z-index: 1;
+  }
+  40% {
+    transform: translate(-50%, -55%) rotate(0deg);
+    z-index: 1;
+  }
+  60% {
+    transform: translate(10%, -50%) rotate(12deg);
+    z-index: 2;
+  }
+  80% {
+    transform: translate(-50%, -45%) rotate(3deg);
+    z-index: 3;
+  }
+}
+
+@keyframes tlShuffle2 {
+  0%, 100% {
+    transform: translate(-50%, -50%) rotate(5deg);
+    z-index: 2;
+  }
+  20% {
+    transform: translate(10%, -55%) rotate(15deg);
+    z-index: 3;
+  }
+  40% {
+    transform: translate(-50%, -45%) rotate(0deg);
+    z-index: 2;
+  }
+  60% {
+    transform: translate(-110%, -50%) rotate(-10deg);
+    z-index: 1;
+  }
+  80% {
+    transform: translate(-50%, -55%) rotate(-3deg);
+    z-index: 2;
+  }
+}
+
+@keyframes tlShuffle3 {
+  0%, 100% {
+    transform: translate(-50%, -50%) rotate(-5deg);
+    z-index: 1;
+  }
+  20% {
+    transform: translate(-50%, -45%) rotate(3deg);
+    z-index: 2;
+  }
+  40% {
+    transform: translate(10%, -50%) rotate(10deg);
+    z-index: 3;
+  }
+  60% {
+    transform: translate(-50%, -55%) rotate(-5deg);
+    z-index: 3;
+  }
+  80% {
+    transform: translate(-110%, -50%) rotate(-15deg);
+    z-index: 1;
+  }
+}
+
+/* --- 背景のグロウ --- */
+.tarot-loading-glow {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(201, 168, 76, 0.12) 0%,
+    rgba(108, 99, 255, 0.06) 40%,
+    transparent 70%
+  );
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  animation: tlGlowPulse 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes tlGlowPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translate(-50%, -60%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -60%) scale(1.15);
+  }
+}
+
+/* --- テキスト --- */
+.tarot-loading-text {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--c-text-bright);
+  text-align: center;
+  line-height: 1.8;
+  position: relative;
+  z-index: 1;
+  animation: tlTextGlow 2.5s ease-in-out infinite;
+}
+
+@keyframes tlTextGlow {
+  0%, 100% {
+    text-shadow: 0 0 10px rgba(201, 168, 76, 0.1);
+  }
+  50% {
+    text-shadow: 0 0 30px rgba(201, 168, 76, 0.3), 0 0 60px rgba(201, 168, 76, 0.1);
+  }
+}
+
+.tarot-loading-desc {
+  font-size: 0.82rem;
+  color: var(--c-text-sub);
+  text-align: center;
+  margin-top: 14px;
+  letter-spacing: 0.06em;
+  position: relative;
+  z-index: 1;
+  animation: tlDescFade 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes tlDescFade {
+  0% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* ========================================
    4. ACTION BAR (FABs)
    ======================================== */
 
