@@ -350,7 +350,8 @@ export interface CompatibilityScore {
   western: { score: number; detail: string }
   numerology: { score: number; detail: string }
   maya: { score: number; detail: string }
-  bazi: { score: number; detail: string }
+  sanmeigaku: { score: number; detail: string }
+  shichusuimei: { score: number; detail: string }
   sukuyo: { score: number; detail: string }
 }
 
@@ -413,35 +414,74 @@ function mayaCompatibility(glyph1: string, glyph2: string, kin1: number, kin2: n
   return { score: 68, detail: `「${glyph1}」×「${glyph2}」。異なるエネルギーの融合が新たな可能性を開く` }
 }
 
-// 算命学: 五行相生相剋
-function baziCompatibility(stem1: string, stem2: string, weapon1: string, weapon2: string): { score: number; detail: string } {
-  const stemIdx1 = STEMS.indexOf(stem1), stemIdx2 = STEMS.indexOf(stem2)
-  const elem1 = Math.floor(stemIdx1 / 2), elem2 = Math.floor(stemIdx2 / 2)
+// 算命学: 中心星の相性
+function sanmeigakuCompatibility(weapon1: string, weapon2: string): { score: number; detail: string } {
+  if (weapon1 === weapon2) return { score: 85, detail: `同じ中心星「${weapon1}」同士。行動パターンが似ていて自然と歩調が合う` }
+  // 中心星の五行グループ
+  const starElement: Record<string, string> = {
+    '貫索星': '木', '石門星': '木', '鳳閣星': '火', '調舒星': '火',
+    '禄存星': '土', '司禄星': '土', '車騎星': '金', '牽牛星': '金',
+    '龍高星': '水', '玉堂星': '水',
+  }
+  const e1 = starElement[weapon1], e2 = starElement[weapon2]
+  if (!e1 || !e2) return { score: 70, detail: `「${weapon1}」×「${weapon2}」の組み合わせ` }
   const elemNames = ['木', '火', '土', '金', '水']
-  // 相生: 木→火→土→金→水→木
-  const isGenerate = (elem1 + 1) % 5 === elem2 || (elem2 + 1) % 5 === elem1
-  // 相剋: 木→土→水→火→金→木
-  const isOvercome = (elem1 + 2) % 5 === elem2 || (elem2 + 2) % 5 === elem1
-  const isSame = elem1 === elem2
-  let score: number, detail: string
-  if (isSame) {
-    score = 78
-    detail = `同じ五行「${elemNames[elem1]}」同士（${stem1}×${stem2}）。共感しやすいが、似た課題を抱えやすい`
-  } else if (isGenerate) {
-    score = 90
-    detail = `五行相生「${elemNames[elem1]}」→「${elemNames[elem2]}」（${stem1}×${stem2}）。自然と力を与え合える最良の関係`
-  } else if (isOvercome) {
-    score = 58
-    detail = `五行相剋「${elemNames[elem1]}」×「${elemNames[elem2]}」（${stem1}×${stem2}）。緊張感はあるが成長を促す関係`
+  const idx1 = elemNames.indexOf(e1), idx2 = elemNames.indexOf(e2)
+  if (idx1 === idx2) return { score: 82, detail: `「${weapon1}」×「${weapon2}」は同じ${e1}の気質。共鳴しやすく理解し合える` }
+  const isGenerate = (idx1 + 1) % 5 === idx2 || (idx2 + 1) % 5 === idx1
+  if (isGenerate) return { score: 88, detail: `「${weapon1}」(${e1})×「${weapon2}」(${e2})は相生の関係。互いの長所を引き出し合える` }
+  const isOvercome = (idx1 + 2) % 5 === idx2 || (idx2 + 2) % 5 === idx1
+  if (isOvercome) return { score: 60, detail: `「${weapon1}」(${e1})×「${weapon2}」(${e2})は相剋の関係。緊張感があるが成長を促す` }
+  return { score: 72, detail: `「${weapon1}」(${e1})×「${weapon2}」(${e2})。バランスの取れた関係` }
+}
+
+// 四柱推命: 日柱・年柱・月柱の干支相性
+function shichusuimeiCompatibility(s1: SanmeigakuResult, s2: SanmeigakuResult): { score: number; detail: string } {
+  const elemNames = ['木', '火', '土', '金', '水']
+  // 日干の五行関係（最重要）
+  const dayStemIdx1 = STEMS.indexOf(s1.dayStem), dayStemIdx2 = STEMS.indexOf(s2.dayStem)
+  const dayElem1 = Math.floor(dayStemIdx1 / 2), dayElem2 = Math.floor(dayStemIdx2 / 2)
+  const dayPol1 = dayStemIdx1 % 2, dayPol2 = dayStemIdx2 % 2 // 0=陽, 1=陰
+
+  let score = 70
+  const details: string[] = []
+
+  // 日干の五行関係
+  if (dayElem1 === dayElem2) {
+    score += 8
+    details.push(`日干が同じ${elemNames[dayElem1]}の五行（${s1.dayStem}×${s2.dayStem}）。価値観の根本が近い`)
   } else {
-    score = 72
-    detail = `「${elemNames[elem1]}」×「${elemNames[elem2]}」（${stem1}×${stem2}）。適度な距離感で安定した関係`
+    const isGenerate = (dayElem1 + 1) % 5 === dayElem2 || (dayElem2 + 1) % 5 === dayElem1
+    const isOvercome = (dayElem1 + 2) % 5 === dayElem2 || (dayElem2 + 2) % 5 === dayElem1
+    if (isGenerate) {
+      score += 15
+      details.push(`日干が相生「${elemNames[dayElem1]}→${elemNames[dayElem2]}」（${s1.dayStem}×${s2.dayStem}）。自然に支え合える関係`)
+    } else if (isOvercome) {
+      score -= 5
+      details.push(`日干が相剋「${elemNames[dayElem1]}×${elemNames[dayElem2]}」（${s1.dayStem}×${s2.dayStem}）。ぶつかりやすいが学びの多い関係`)
+    } else {
+      score += 5
+      details.push(`日干が「${s1.dayStem}×${s2.dayStem}」。適度な距離感のある関係`)
+    }
   }
-  if (weapon1 === weapon2) {
-    score += 5
-    detail += `。中心星も同じ「${weapon1}」で、行動パターンが似ている`
+
+  // 干合（天干の特別な相性: 甲己, 乙庚, 丙辛, 丁壬, 戊癸）
+  const gangoSets: [number, number][] = [[0, 5], [1, 6], [2, 7], [3, 8], [4, 9]]
+  for (const [a, b] of gangoSets) {
+    if ((dayStemIdx1 === a && dayStemIdx2 === b) || (dayStemIdx1 === b && dayStemIdx2 === a)) {
+      score += 10
+      details.push(`日干が干合（${s1.dayStem}×${s2.dayStem}）。深い結びつきを示す特別な縁`)
+      break
+    }
   }
-  return { score: Math.min(score, 100), detail }
+
+  // 陰陽バランス
+  if (dayPol1 !== dayPol2) {
+    score += 3
+    details.push('陰陽が異なり、互いに補い合える')
+  }
+
+  return { score: Math.min(Math.max(score, 0), 100), detail: details.join('。') || `${s1.day}×${s2.day}の四柱推命的相性` }
 }
 
 // 宿曜: 三九の秘法（27宿の相性）
@@ -468,18 +508,16 @@ export function calculateCompatibility(data1: FortuneResult, data2: FortuneResul
   const western = westernCompatibility(data1.western.sign, data2.western.sign)
   const numerology = numerologyCompatibility(data1.numerology.lp, data2.numerology.lp)
   const maya = mayaCompatibility(data1.maya.glyph, data2.maya.glyph, data1.maya.kin, data2.maya.kin)
-  const bazi = baziCompatibility(data1.bazi.stem, data2.bazi.stem, data1.bazi.weapon, data2.bazi.weapon)
+  const sanmeigaku = sanmeigakuCompatibility(data1.bazi.weapon, data2.bazi.weapon)
+  const shichusuimei = shichusuimeiCompatibility(data1.sanmeigaku, data2.sanmeigaku)
   const sukuyo = sukuyoCompatibility(data1.sukuyo, data2.sukuyo)
 
+  // 6占術均等加重（各 1/6 ≈ 16.67%）
   const total = Math.round(
-    western.score * 0.20 +
-    numerology.score * 0.20 +
-    maya.score * 0.20 +
-    bazi.score * 0.20 +
-    sukuyo.score * 0.20
+    (western.score + numerology.score + maya.score + sanmeigaku.score + shichusuimei.score + sukuyo.score) / 6
   )
 
-  return { total, western, numerology, maya, bazi, sukuyo }
+  return { total, western, numerology, maya, sanmeigaku, shichusuimei, sukuyo }
 }
 
 // ---------- 統合計算関数 ----------
