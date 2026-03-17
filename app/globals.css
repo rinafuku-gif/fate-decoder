@@ -877,6 +877,132 @@ textarea {
 }
 
 /* ========================================
+   4.5. SHARE PANEL
+   ======================================== */
+
+.share-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 100000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.share-panel {
+  background: var(--c-card);
+  border: 1px solid var(--c-glass-border);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 20px 36px;
+  animation: slideUp 0.3s ease;
+}
+
+.share-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--c-text);
+  font-family: var(--font-sans);
+}
+
+.share-close {
+  background: none;
+  border: none;
+  color: var(--c-text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.share-close:hover {
+  background: var(--c-glass);
+}
+
+.share-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.share-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+  color: #fff;
+}
+.share-btn:hover {
+  transform: translateY(-2px);
+}
+
+.share-icon {
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.share-btn-x {
+  background: #000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.share-btn-x .share-icon {
+  font-family: serif;
+}
+
+.share-btn-line {
+  background: #06C755;
+  box-shadow: 0 4px 12px rgba(6, 199, 85, 0.3);
+}
+.share-btn-line .share-icon {
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.share-btn-fb {
+  background: #1877F2;
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
+}
+.share-btn-fb .share-icon {
+  font-family: serif;
+  font-size: 1.6rem;
+}
+
+.share-btn-copy {
+  background: var(--c-glass);
+  border: 1px solid var(--c-glass-border);
+  color: var(--c-text);
+  box-shadow: var(--shadow-md);
+}
+
+/* ========================================
    5. RESPONSIVE
    ======================================== */
 
@@ -935,6 +1061,16 @@ textarea {
     bottom: 20px;
     right: 16px;
   }
+
+  .share-buttons {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .share-btn {
+    padding: 12px 4px;
+    font-size: 0.7rem;
+  }
 }
 
 @media (max-width: 380px) {
@@ -967,7 +1103,7 @@ textarea {
     display: none !important;
   }
 
-  .input-screen, .loading-screen, .action-bar, .bg-banner { display: none !important; }
+  .input-screen, .loading-screen, .action-bar, .bg-banner, .share-overlay { display: none !important; }
 
   #result-screen {
     display: block !important;

@@ -23,6 +23,7 @@ export default function FateDecoder() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false)
   const [isProcessingInBackground, setIsProcessingInBackground] = useState(false)
   const [isInAppBrowser, setIsInAppBrowser] = useState(false)
+  const [showSharePanel, setShowSharePanel] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
@@ -313,24 +314,38 @@ export default function FateDecoder() {
     }
   }
 
-  const handleShare = async () => {
-    if (typeof window === 'undefined') return
+  const getShareUrl = () => typeof window !== 'undefined' ? window.location.href : ''
+  const getShareText = () => {
     const name = formData.name || '私'
-    const shareData = {
-      title: 'Fate Decoder - AIパーソナルリーディング',
-      text: `${name}さんの診断結果`,
-      url: window.location.href
+    return `${name}さんのFate Decoder診断結果`
+  }
+
+  const handleShareX = () => {
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(getShareText())}&url=${encodeURIComponent(getShareUrl())}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+    setShowSharePanel(false)
+  }
+
+  const handleShareLINE = () => {
+    const url = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(getShareUrl())}&text=${encodeURIComponent(getShareText())}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+    setShowSharePanel(false)
+  }
+
+  const handleShareFacebook = () => {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+    setShowSharePanel(false)
+  }
+
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareUrl())
+      alert('URLをコピーしました！')
+    } catch {
+      alert('URLのコピーに失敗しました。')
     }
-    if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-      try { await navigator.share(shareData) } catch {}
-    } else if (typeof navigator !== 'undefined') {
-      try {
-        await navigator.clipboard.writeText(window.location.href)
-        alert('URLをコピーしました。')
-      } catch {
-        alert('URLのコピーに失敗しました。')
-      }
-    }
+    setShowSharePanel(false)
   }
 
   return (
@@ -431,6 +446,34 @@ export default function FateDecoder() {
       {screen === 'result' && (
         <>
           <div id="result-screen" dangerouslySetInnerHTML={{ __html: resultHtml }} />
+          {showSharePanel && (
+            <div className="share-overlay" onClick={() => setShowSharePanel(false)}>
+              <div className="share-panel" onClick={(e) => e.stopPropagation()}>
+                <div className="share-panel-header">
+                  <span>シェアする</span>
+                  <button className="share-close" onClick={() => setShowSharePanel(false)}>✕</button>
+                </div>
+                <div className="share-buttons">
+                  <button className="share-btn share-btn-x" onClick={handleShareX}>
+                    <span className="share-icon">𝕏</span>
+                    <span>X (Twitter)</span>
+                  </button>
+                  <button className="share-btn share-btn-line" onClick={handleShareLINE}>
+                    <span className="share-icon">LINE</span>
+                    <span>LINE</span>
+                  </button>
+                  <button className="share-btn share-btn-fb" onClick={handleShareFacebook}>
+                    <span className="share-icon">f</span>
+                    <span>Facebook</span>
+                  </button>
+                  <button className="share-btn share-btn-copy" onClick={handleCopyUrl}>
+                    <span className="share-icon">🔗</span>
+                    <span>URLをコピー</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="action-bar">
             <button onClick={() => { setScreen('input'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
               もう一度
@@ -438,7 +481,7 @@ export default function FateDecoder() {
             <button onClick={handlePrintOrDownload} className="fab fab-print" title={isDownloadingPDF ? 'PDF生成中...' : '印刷/PDF保存'} disabled={isDownloadingPDF}>
               {isDownloadingPDF ? '...' : '印刷'}
             </button>
-            <button onClick={handleShare} className="fab fab-share" title="シェア">
+            <button onClick={() => setShowSharePanel(true)} className="fab fab-share" title="シェア">
               共有
             </button>
           </div>
