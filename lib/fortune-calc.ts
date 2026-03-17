@@ -341,6 +341,149 @@ export function calculateSanmeigaku(y: number, m: number, d: number): Sanmeigaku
 
 // ---------- 統合計算関数 ----------
 
+// ---------- 相性計算ロジック ----------
+
+export type CompatibilityType = 'love' | 'business' | 'general'
+
+export interface CompatibilityScore {
+  total: number
+  western: { score: number; detail: string }
+  numerology: { score: number; detail: string }
+  maya: { score: number; detail: string }
+  bazi: { score: number; detail: string }
+  sukuyo: { score: number; detail: string }
+}
+
+// 西洋占星術: エレメント相性
+function getElement(sign: string): string {
+  const fire = ['牡羊座', '獅子座', '射手座']
+  const earth = ['牡牛座', '乙女座', '山羊座']
+  const air = ['双子座', '天秤座', '水瓶座']
+  const water = ['蟹座', '蠍座', '魚座']
+  if (fire.includes(sign)) return '火'
+  if (earth.includes(sign)) return '地'
+  if (air.includes(sign)) return '風'
+  if (water.includes(sign)) return '水'
+  return '不明'
+}
+
+function westernCompatibility(sign1: string, sign2: string): { score: number; detail: string } {
+  const e1 = getElement(sign1), e2 = getElement(sign2)
+  if (e1 === e2) return { score: 85, detail: `同じ${e1}のエレメント同士。自然体でいられる関係` }
+  const good: Record<string, string> = { '火': '風', '風': '火', '地': '水', '水': '地' }
+  if (good[e1] === e2) return { score: 90, detail: `${e1}×${e2}の好相性。互いの力を引き出し合える関係` }
+  const neutral: Record<string, string> = { '火': '地', '地': '火', '風': '水', '水': '風' }
+  if (neutral[e1] === e2) return { score: 60, detail: `${e1}×${e2}。異なる価値観が新鮮な刺激になる関係` }
+  return { score: 70, detail: `${e1}×${e2}。違いを認め合うことで成長できる関係` }
+}
+
+// 数秘術: ライフパスナンバー相性
+function numerologyCompatibility(lp1: string, lp2: string): { score: number; detail: string } {
+  const n1 = parseInt(lp1), n2 = parseInt(lp2)
+  if (n1 === n2) return { score: 80, detail: `同じライフパス${n1}同士。深く共感し合えるが、似すぎて衝突も` }
+  const great: [number, number][] = [[1, 5], [2, 8], [3, 5], [3, 6], [4, 8], [6, 9], [7, 5], [1, 3]]
+  for (const [a, b] of great) {
+    if ((n1 === a && n2 === b) || (n1 === b && n2 === a)) {
+      return { score: 92, detail: `${n1}×${n2}の黄金コンビ。互いの弱点を補い合える最高の組み合わせ` }
+    }
+  }
+  const good: [number, number][] = [[1, 9], [2, 4], [2, 6], [3, 7], [4, 6], [5, 7], [8, 9]]
+  for (const [a, b] of good) {
+    if ((n1 === a && n2 === b) || (n1 === b && n2 === a)) {
+      return { score: 80, detail: `${n1}×${n2}の好相性。価値観が近く、自然に支え合える` }
+    }
+  }
+  const diff = Math.abs(n1 - n2)
+  if (diff <= 2) return { score: 72, detail: `${n1}×${n2}。波長が近く、穏やかな関係を築ける` }
+  return { score: 65, detail: `${n1}×${n2}。異なる視点が互いの世界を広げてくれる` }
+}
+
+// マヤ暦: 紋章の関係性
+function mayaCompatibility(glyph1: string, glyph2: string, kin1: number, kin2: number): { score: number; detail: string } {
+  const g1 = GLYPHS.indexOf(glyph1), g2 = GLYPHS.indexOf(glyph2)
+  if (g1 === g2) return { score: 88, detail: `同じ「${glyph1}」の紋章。魂のレベルで深く理解し合える` }
+  // 類似KIN (反対の色)
+  if (Math.abs(g1 - g2) === 10) return { score: 90, detail: `反対の紋章同士「${glyph1}」×「${glyph2}」。強烈に惹かれ合う宿命的な関係` }
+  // ガイドKIN
+  if ((g1 + g2) % 20 < 5) return { score: 85, detail: `ガイド関係「${glyph1}」→「${glyph2}」。導き合える関係` }
+  // KIN番号の近さ
+  const kinDiff = Math.abs(kin1 - kin2)
+  if (kinDiff <= 4) return { score: 82, detail: `KIN番号が近く（${kin1}と${kin2}）、同じ時代の波に乗るパートナー` }
+  if (kinDiff % 20 === 0) return { score: 78, detail: `KINの周期で共鳴する関係。タイミングが合いやすい` }
+  return { score: 68, detail: `「${glyph1}」×「${glyph2}」。異なるエネルギーの融合が新たな可能性を開く` }
+}
+
+// 算命学: 五行相生相剋
+function baziCompatibility(stem1: string, stem2: string, weapon1: string, weapon2: string): { score: number; detail: string } {
+  const stemIdx1 = STEMS.indexOf(stem1), stemIdx2 = STEMS.indexOf(stem2)
+  const elem1 = Math.floor(stemIdx1 / 2), elem2 = Math.floor(stemIdx2 / 2)
+  const elemNames = ['木', '火', '土', '金', '水']
+  // 相生: 木→火→土→金→水→木
+  const isGenerate = (elem1 + 1) % 5 === elem2 || (elem2 + 1) % 5 === elem1
+  // 相剋: 木→土→水→火→金→木
+  const isOvercome = (elem1 + 2) % 5 === elem2 || (elem2 + 2) % 5 === elem1
+  const isSame = elem1 === elem2
+  let score: number, detail: string
+  if (isSame) {
+    score = 78
+    detail = `同じ五行「${elemNames[elem1]}」同士（${stem1}×${stem2}）。共感しやすいが、似た課題を抱えやすい`
+  } else if (isGenerate) {
+    score = 90
+    detail = `五行相生「${elemNames[elem1]}」→「${elemNames[elem2]}」（${stem1}×${stem2}）。自然と力を与え合える最良の関係`
+  } else if (isOvercome) {
+    score = 58
+    detail = `五行相剋「${elemNames[elem1]}」×「${elemNames[elem2]}」（${stem1}×${stem2}）。緊張感はあるが成長を促す関係`
+  } else {
+    score = 72
+    detail = `「${elemNames[elem1]}」×「${elemNames[elem2]}」（${stem1}×${stem2}）。適度な距離感で安定した関係`
+  }
+  if (weapon1 === weapon2) {
+    score += 5
+    detail += `。中心星も同じ「${weapon1}」で、行動パターンが似ている`
+  }
+  return { score: Math.min(score, 100), detail }
+}
+
+// 宿曜: 三九の秘法（27宿の相性）
+function sukuyoCompatibility(sukuyo1: string, sukuyo2: string): { score: number; detail: string } {
+  const s1 = sukuyo1.replace('宿', ''), s2 = sukuyo2.replace('宿', '')
+  const idx1 = MANSIONS_27.indexOf(s1), idx2 = MANSIONS_27.indexOf(s2)
+  if (idx1 === -1 || idx2 === -1) return { score: 70, detail: '宿曜の相性計算に必要なデータが不足' }
+  if (idx1 === idx2) return { score: 75, detail: `同じ「${sukuyo1}」同士。命の関係。深い縁があるが、良くも悪くも影響が強い` }
+  const diff = ((idx2 - idx1) % 27 + 27) % 27
+  // 栄・親・友・衰・危・成の6関係をdiffから判定
+  if ([3, 6, 9].includes(diff) || [24, 21, 18].includes(diff)) {
+    return { score: 88, detail: `「${sukuyo1}」×「${sukuyo2}」は栄・親の関係。互いに発展・成長を促す好相性` }
+  }
+  if ([1, 4, 10].includes(diff) || [26, 23, 17].includes(diff)) {
+    return { score: 82, detail: `「${sukuyo1}」×「${sukuyo2}」は友の関係。自然に打ち解け、信頼関係を築きやすい` }
+  }
+  if ([2, 5, 8].includes(diff) || [25, 22, 19].includes(diff)) {
+    return { score: 60, detail: `「${sukuyo1}」×「${sukuyo2}」は衰・危の関係。注意は必要だが、意識的に補い合えば深い絆に` }
+  }
+  return { score: 72, detail: `「${sukuyo1}」×「${sukuyo2}」は安の関係。穏やかで安定した関わりが期待できる` }
+}
+
+export function calculateCompatibility(data1: FortuneResult, data2: FortuneResult): CompatibilityScore {
+  const western = westernCompatibility(data1.western.sign, data2.western.sign)
+  const numerology = numerologyCompatibility(data1.numerology.lp, data2.numerology.lp)
+  const maya = mayaCompatibility(data1.maya.glyph, data2.maya.glyph, data1.maya.kin, data2.maya.kin)
+  const bazi = baziCompatibility(data1.bazi.stem, data2.bazi.stem, data1.bazi.weapon, data2.bazi.weapon)
+  const sukuyo = sukuyoCompatibility(data1.sukuyo, data2.sukuyo)
+
+  const total = Math.round(
+    western.score * 0.20 +
+    numerology.score * 0.20 +
+    maya.score * 0.20 +
+    bazi.score * 0.20 +
+    sukuyo.score * 0.20
+  )
+
+  return { total, western, numerology, maya, bazi, sukuyo }
+}
+
+// ---------- 統合計算関数 ----------
+
 export function calculateAll(y: number, m: number, d: number): FortuneResult {
   // マヤ暦
   let yc = MAYA_YEARS[y]
