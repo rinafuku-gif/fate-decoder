@@ -507,7 +507,7 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
     })
   }
 
-  const handlePrintOrDownload = async () => {
+  const handlePrintOrDownload = async (targetId = 'result-screen') => {
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
     const isInApp = /Line|FBAV|FBAN|Instagram|Twitter|Snapchat|WeChat|WhatsApp|Telegram/i.test(ua)
     const isMobile = /iPhone|iPad|iPod|Android/i.test(ua)
@@ -518,9 +518,9 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
           await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
           await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
         }
-        const el = document.getElementById('result-screen')
+        const el = document.getElementById(targetId)
         if (!el) return
-        const canvas = await (window as any).html2canvas(el, { scale: 2 })
+        const canvas = await (window as any).html2canvas(el, { scale: 2, backgroundColor: '#ffffff' })
         const imgData = canvas.toDataURL('image/png')
         const { jsPDF } = (window as any).jspdf
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
@@ -537,7 +537,8 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
           pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
           heightLeft -= pageHeight
         }
-        pdf.save('fate-decoder-result.pdf')
+        const filename = targetId === 'compat-result-screen' ? 'fate-decoder-compatibility.pdf' : 'fate-decoder-result.pdf'
+        pdf.save(filename)
         setIsDownloadingPDF(false)
       } catch {
         setIsDownloadingPDF(false)
@@ -969,7 +970,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
       )}
 
       {screen === 'compat-result' && compatResult && (
-        <div className="compat-result-screen">
+        <div id="compat-result-screen" className="compat-result-screen">
           <header className="compat-header">
             <p className="result-label">Fate Decoder</p>
             <h1 className="compat-title">{compatResult.name1} &times; {compatResult.name2}</h1>
@@ -1084,6 +1085,9 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
           <div className="action-bar">
             <button onClick={() => { setScreen('mode-select'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
               もう一度
+            </button>
+            <button onClick={() => handlePrintOrDownload('compat-result-screen')} className="fab fab-print" title={isDownloadingPDF ? 'PDF生成中...' : '印刷/PDF保存'} disabled={isDownloadingPDF}>
+              {isDownloadingPDF ? '...' : '印刷'}
             </button>
             <button onClick={handleShare} className="fab fab-share" title="シェア">
               共有
