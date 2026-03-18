@@ -2178,7 +2178,7 @@ textarea {
     display: none !important;
   }
 
-  .mode-select-screen, .input-screen, .loading-screen, .action-bar, .bg-banner, .tarot-result-screen, .short-result-screen { display: none !important; }
+  .mode-select-screen, .input-screen, .loading-screen, .action-bar, .bg-banner, .tarot-result-screen, .short-result-screen, .compat-type-select-screen { display: none !important; }
 
   #result-screen {
     display: block !important;
@@ -2341,6 +2341,147 @@ textarea {
     background: none !important;
     -webkit-background-clip: unset !important;
     background-clip: unset !important;
+  }
+
+  /* === Compatibility Reading 印刷用 === */
+  .compat-result-screen {
+    display: block !important;
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .compat-header {
+    background: none !important;
+    border-bottom: 1px solid #ccc !important;
+  }
+
+  .compat-title {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+
+  .compat-type-badge {
+    background: #f5f5f5 !important;
+    color: #333 !important;
+    -webkit-text-fill-color: #333 !important;
+    border: 1px solid #ccc !important;
+  }
+
+  .compat-header-line {
+    background: #ccc !important;
+  }
+
+  /* スコアサークル */
+  .compat-score-circle {
+    color: #000 !important;
+  }
+
+  .compat-score-svg circle:first-child {
+    stroke: #ddd !important;
+  }
+
+  .compat-score-svg circle:last-child {
+    stroke: #333 !important;
+  }
+
+  .compat-score-value {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+
+  .compat-score-label {
+    color: #666 !important;
+    -webkit-text-fill-color: #666 !important;
+  }
+
+  /* スコアバー */
+  .compat-bar-label {
+    color: #333 !important;
+    -webkit-text-fill-color: #333 !important;
+  }
+
+  .compat-bar-track {
+    background: #eee !important;
+  }
+
+  .compat-bar-fill {
+    background: #555 !important;
+  }
+
+  .compat-bar-score {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+
+  /* データ比較 */
+  .compat-section-title {
+    color: #333 !important;
+    -webkit-text-fill-color: #333 !important;
+  }
+
+  .compat-compare-row {
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+  }
+
+  .compat-compare-v1, .compat-compare-v2 {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+
+  .compat-compare-label {
+    color: #666 !important;
+    -webkit-text-fill-color: #666 !important;
+  }
+
+  /* ストーリーカード */
+  .compat-story-card {
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+    page-break-inside: avoid !important;
+  }
+
+  .compat-attraction {
+    background: #fafaf5 !important;
+    border-color: #ccc !important;
+  }
+
+  .compat-caution {
+    background: #faf5f5 !important;
+    border-color: #ccc !important;
+  }
+
+  .compat-advice {
+    background: #f5f5fa !important;
+    border-color: #ccc !important;
+  }
+
+  .compat-story-icon {
+    color: #333 !important;
+    -webkit-text-fill-color: #333 !important;
+  }
+
+  .compat-story-title {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+
+  .compat-story-text {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+
+  /* Full Readingへの誘導 */
+  .short-upgrade {
+    background: #f5f5f5 !important;
+    border: 1px solid #ccc !important;
+  }
+
+  .short-upgrade-text {
+    color: #333 !important;
+    -webkit-text-fill-color: #333 !important;
   }
 }
 
