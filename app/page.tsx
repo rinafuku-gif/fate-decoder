@@ -1671,6 +1671,69 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
 // 3. レンダリング関数
 // ========================================
 
+/** HTMLテンプレート用の占術グループカード生成 */
+function renderDataCards(data: FortuneResult): string {
+  const w = data.western
+  const symbols: Record<string, string> = { '太陽':'☉','月':'☽','水星':'☿','金星':'♀','火星':'♂','木星':'♃','土星':'♄','天王星':'♅','海王星':'♆','冥王星':'♇' }
+  const mainPlanets = w.planets
+    .filter(p => !['正真交点','カイロン'].includes(p.name))
+    .slice(0, 5) // 表面は5天体まで
+    .map(p => {
+      if (p.name === '月' && w.moonCrossesSigns) return `${symbols[p.name]}${w.moonRangeStart.replace('座','')}/${w.moonRangeEnd.replace('座','')}`
+      return `${symbols[p.name] || ''}${p.sign.replace('座','')}${p.isRetrograde ? '℞' : ''}`
+    }).join(' ')
+  const eb = w.elementBalance
+  const retroNote = w.retrograding.length > 0 ? `<div style="font-size:0.62rem;color:#6A6580;font-style:italic;margin-top:4px">${w.retrograding.join('・')}逆行中</div>` : ''
+
+  return `
+    <div class="divination-groups">
+      <div class="divination-group">
+        <h3 class="group-label">マヤ暦</h3>
+        <div class="group-cards">
+          <div class="data-card"><span class="data-label">KIN${data.maya.kin}</span><span class="data-value">${data.maya.glyph}</span></div>
+          <div class="data-card"><span class="data-label">WS</span><span class="data-value">${data.maya.ws}</span></div>
+          <div class="data-card"><span class="data-label">音</span><span class="data-value">${data.maya.tone}</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px">
+        <div class="divination-group" style="flex:1;text-align:center">
+          <h3 class="group-label">数秘術</h3>
+          <div class="group-single-value">${data.numerology.lp}</div>
+          <span class="group-single-sublabel">ライフパスナンバー</span>
+        </div>
+        <div class="divination-group" style="flex:1;text-align:center">
+          <h3 class="group-label">算命学</h3>
+          <div class="group-single-value">${data.bazi.weapon}</div>
+          <span class="group-single-sublabel">中心星</span>
+        </div>
+      </div>
+      <div class="divination-group">
+        <h3 class="group-label">四柱推命</h3>
+        <div class="group-cards">
+          <div class="data-card"><span class="data-label">日柱</span><span class="data-value">${data.sanmeigaku.day}</span></div>
+          <div class="data-card"><span class="data-label">月柱</span><span class="data-value">${data.sanmeigaku.month}</span></div>
+          <div class="data-card"><span class="data-label">年柱</span><span class="data-value">${data.sanmeigaku.year}</span></div>
+        </div>
+      </div>
+      <div class="divination-group">
+        <h3 class="group-label">西洋占星術</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">${mainPlanets.split(' ').map(p => `<span class="western-planet-chip">${p}</span>`).join('')}</div>
+        <div class="western-balance-bar">
+          <span class="element-pip ${eb.fire > 0 ? 'element-pip-active' : ''}">火${eb.fire}</span>
+          <span class="element-pip ${eb.earth > 0 ? 'element-pip-active' : ''}">地${eb.earth}</span>
+          <span class="element-pip ${eb.air > 0 ? 'element-pip-active' : ''}">風${eb.air}</span>
+          <span class="element-pip ${eb.water > 0 ? 'element-pip-active' : ''}">水${eb.water}</span>
+        </div>
+        ${retroNote}
+      </div>
+      <div class="divination-group" style="text-align:center">
+        <h3 class="group-label">宿曜占星術</h3>
+        <div class="group-single-value">${data.sukuyo}</div>
+        <span class="group-single-sublabel">東洋の星座</span>
+      </div>
+    </div>`
+}
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -1696,63 +1759,7 @@ function renderNovel(name: string, data: any, story: any, concern: string): stri
           <div class="concern-label">ご相談内容</div>
           <div class="concern-text">「${safeConcern}」</div>
         </div>` : ''}
-        <div class="data-grid">
-          <div class="data-card">
-            <span class="data-label">KIN番号</span>
-            <span class="data-sublabel">マヤ暦</span>
-            <span class="data-value">${data.maya.kin}</span>
-          </div>
-          <div class="data-card">
-            <span class="data-label">太陽の紋章</span>
-            <span class="data-sublabel">表の自分</span>
-            <span class="data-value">${data.maya.glyph}</span>
-          </div>
-          <div class="data-card">
-            <span class="data-label">ウェイブスペル</span>
-            <span class="data-sublabel">内なる自分</span>
-            <span class="data-value">${data.maya.ws}</span>
-          </div>
-          <div class="data-card">
-            <span class="data-label">銀河の音</span>
-            <span class="data-sublabel">役割・才能</span>
-            <span class="data-value">${data.maya.tone}</span>
-          </div>
-          <div class="data-card">
-            <span class="data-label">ライフパス</span>
-            <span class="data-sublabel">数秘術</span>
-            <span class="data-value">${data.numerology.lp}</span>
-          </div>
-          <div class="data-card">
-            <span class="data-label">中心星</span>
-            <span class="data-sublabel">算命学</span>
-            <span class="data-value">${data.bazi.weapon}</span>
-          </div>
-          <div class="data-card">
-            <span class="data-label">日柱</span>
-            <span class="data-sublabel">四柱推命</span>
-            <span class="data-value">${data.sanmeigaku.day}</span>
-          </div>
-          <div class="data-card">
-            <span class="data-label">月柱</span>
-            <span class="data-sublabel">四柱推命</span>
-            <span class="data-value">${data.sanmeigaku.month}</span>
-          </div>
-          <div class="data-card">
-            <span class="data-label">年柱</span>
-            <span class="data-sublabel">四柱推命</span>
-            <span class="data-value">${data.sanmeigaku.year}</span>
-          </div>
-          <div class="data-card">
-            <span class="data-label">星座</span>
-            <span class="data-sublabel">西洋占星術</span>
-            <span class="data-value">${data.western.sign}</span>
-          </div>
-          <div class="data-card">
-            <span class="data-label">宿曜</span>
-            <span class="data-sublabel">東洋の星座</span>
-            <span class="data-value">${data.sukuyo}</span>
-          </div>
-        </div>
+        ${renderDataCards(data)}
       </section>
 
       ${renderSection(story.prologue)}
@@ -1807,19 +1814,7 @@ function renderPreview(name: string, data: any, concern: string): string {
       </div>
 
       <section class="data-section">
-        <div class="data-grid">
-          <div class="data-card"><span class="data-label">KIN番号</span><span class="data-sublabel">マヤ暦</span><span class="data-value">${data.maya.kin}</span></div>
-          <div class="data-card"><span class="data-label">太陽の紋章</span><span class="data-sublabel">表の自分</span><span class="data-value">${data.maya.glyph}</span></div>
-          <div class="data-card"><span class="data-label">ウェイブスペル</span><span class="data-sublabel">内なる自分</span><span class="data-value">${data.maya.ws}</span></div>
-          <div class="data-card"><span class="data-label">銀河の音</span><span class="data-sublabel">役割・才能</span><span class="data-value">${data.maya.tone}</span></div>
-          <div class="data-card"><span class="data-label">ライフパス</span><span class="data-sublabel">数秘術</span><span class="data-value">${data.numerology.lp}</span></div>
-          <div class="data-card"><span class="data-label">中心星</span><span class="data-sublabel">算命学</span><span class="data-value">${data.bazi.weapon}</span></div>
-          <div class="data-card"><span class="data-label">日柱</span><span class="data-sublabel">四柱推命</span><span class="data-value">${data.sanmeigaku.day}</span></div>
-          <div class="data-card"><span class="data-label">月柱</span><span class="data-sublabel">四柱推命</span><span class="data-value">${data.sanmeigaku.month}</span></div>
-          <div class="data-card"><span class="data-label">年柱</span><span class="data-sublabel">四柱推命</span><span class="data-value">${data.sanmeigaku.year}</span></div>
-          <div class="data-card"><span class="data-label">星座</span><span class="data-sublabel">西洋占星術</span><span class="data-value">${data.western.sign}</span></div>
-          <div class="data-card"><span class="data-label">宿曜</span><span class="data-sublabel">東洋の星座</span><span class="data-value">${data.sukuyo}</span></div>
-        </div>
+        ${renderDataCards(data)}
       </section>
 
       <footer class="result-footer">
