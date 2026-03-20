@@ -868,7 +868,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
             <p className="mode-select-subtitle">あなたに合ったリーディングを選んでください</p>
           </div>
           <div className="mode-select-grid">
-            {(Object.entries(MODE_CONFIG) as [ReadingMode, typeof MODE_CONFIG[ReadingMode]][]).map(([key, config]) => (
+            {(['full', 'short', 'tarot', 'compatibility'] as ReadingMode[]).map((key) => { const config = MODE_CONFIG[key]; return (
               <button
                 key={key}
                 className={`mode-card ${key === 'full' ? 'mode-card-primary' : ''} ${!config.available ? 'mode-card-disabled' : ''}`}
@@ -880,7 +880,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                 <span className="mode-card-subtitle">{config.subtitle}</span>
                 <span className="mode-description">{config.description}</span>
               </button>
-            ))}
+            ); })}
           </div>
           <p className="input-credit">produced by <a href="https://satoyama-ai-base.vercel.app" target="_blank" rel="noopener noreferrer" className="credit-link">SATOYAMA AI BASE</a></p>
         </div>
