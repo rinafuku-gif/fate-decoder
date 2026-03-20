@@ -16,7 +16,8 @@ export async function generateStory(prompt: string) {
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: 'application/json' }
-    })
+    }),
+    signal: AbortSignal.timeout(55000)
   })
   
   if (!response.ok) {

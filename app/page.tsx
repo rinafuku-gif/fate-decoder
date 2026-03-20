@@ -77,6 +77,7 @@ export default function FateDecoder() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false)
   const [isProcessingInBackground, setIsProcessingInBackground] = useState(false)
   const [isInAppBrowser, setIsInAppBrowser] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
@@ -147,6 +148,7 @@ export default function FateDecoder() {
 
   const handleTarotSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSubmitting) return
     if (!formData.name || !formData.year || !formData.month || !formData.day) {
       alert('お名前と生年月日を入力してください。')
       return
@@ -155,6 +157,7 @@ export default function FateDecoder() {
       alert('診断結果の保存にご同意ください。')
       return
     }
+    setIsSubmitting(true)
     setScreen('loading')
 
     try {
@@ -227,16 +230,19 @@ ${spread.map((s, i) => `${i + 1}. 【${s.position.label}】（${s.position.descr
       }
       setTarotMessages(messages.length === spread.length ? messages : spread.map(s => s.card.meaning))
       setScreen('tarot-result')
+      setIsSubmitting(false)
       setTimeout(() => window.scrollTo(0, 0), 100)
 
     } catch {
       alert('診断中にエラーが発生しました。もう一度お試しください。')
       setScreen('input')
+      setIsSubmitting(false)
     }
   }
 
   const handleShortSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSubmitting) return
     if (!formData.name || !formData.year || !formData.month || !formData.day) {
       alert('お名前と生年月日を入力してください。')
       return
@@ -245,6 +251,7 @@ ${spread.map((s, i) => `${i + 1}. 【${s.position.label}】（${s.position.descr
       alert('診断結果の保存にご同意ください。')
       return
     }
+    setIsSubmitting(true)
     setScreen('loading')
 
     try {
@@ -319,11 +326,13 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
 
       setShortResult({ data, name: formData.name, oneWord, personality, relationships, talent, action, luckyItem })
       setScreen('short-result')
+      setIsSubmitting(false)
       setTimeout(() => window.scrollTo(0, 0), 100)
 
     } catch {
       alert('診断中にエラーが発生しました。もう一度お試しください。')
       setScreen('input')
+      setIsSubmitting(false)
     }
   }
 
@@ -335,6 +344,7 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
     if (readingMode === 'short') {
       return handleShortSubmit(e)
     }
+    if (isSubmitting) return
     if (!formData.name || !formData.year || !formData.month || !formData.day) {
       alert('お名前と生年月日を入力してください。')
       return
@@ -343,6 +353,7 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
       alert('診断結果の保存にご同意ください。')
       return
     }
+    setIsSubmitting(true)
     setScreen('loading')
     let timedOut = false
     const timeoutId = setTimeout(() => {
@@ -460,6 +471,7 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
 
       clearTimeout(timeoutId)
       setIsProcessingInBackground(false)
+      setIsSubmitting(false)
       setScreen('result')
       setTimeout(() => window.scrollTo(0, 0), 100)
 
@@ -476,7 +488,13 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
         })
       }).then(res => res.json()).then(notionResult => {
         if (notionResult.success && notionResult.pageId) {
-          window.history.replaceState({}, '', `${window.location.pathname}?notionId=${notionResult.pageId}`)
+          const shareParams = new URLSearchParams()
+          shareParams.set('notionId', notionResult.pageId)
+          shareParams.set('name', encodeURIComponent(formData.name))
+          shareParams.set('year', formData.year)
+          shareParams.set('month', formData.month)
+          shareParams.set('day', formData.day)
+          window.history.replaceState({}, '', `${window.location.pathname}?${shareParams.toString()}`)
         } else {
           console.error('[Notion Save Failed]', notionResult.error)
         }
@@ -484,6 +502,7 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
 
     } catch (e) {
       clearTimeout(timeoutId)
+      setIsSubmitting(false)
       if (e instanceof Error && e.message.includes('執筆力が本日の限界')) {
         const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day))
         setResultHtml(renderPreview(formData.name, data, formData.concern))
@@ -597,6 +616,7 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
 
   const handleCompatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSubmitting) return
     if (!formData.name || !formData.year || !person2.name || !person2.year) {
       alert('2人のお名前と生年月日を入力してください。')
       return
@@ -605,6 +625,7 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
       alert('診断結果の保存にご同意ください。')
       return
     }
+    setIsSubmitting(true)
     setScreen('loading')
 
     try {
@@ -696,10 +717,12 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
         data1, data2, score, type: compatType, story
       })
       setScreen('compat-result')
+      setIsSubmitting(false)
       setTimeout(() => window.scrollTo(0, 0), 100)
     } catch {
       alert('診断中にエラーが発生しました。もう一度お試しください。')
       setScreen('compat-input')
+      setIsSubmitting(false)
     }
   }
 
@@ -858,7 +881,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                   </span>
                 </label>
               </div>
-              <button type="submit" className="submit-btn">診断する</button>
+              <button type="submit" className="submit-btn" disabled={isSubmitting}>{isSubmitting ? '診断中...' : '診断する'}</button>
             </form>
           </div>
           <p className="input-footer">マヤ暦・算命学・数秘術・西洋占星術・宿曜・四柱推命の6つの占術を用いてリーディングします。</p>
@@ -961,7 +984,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                   </span>
                 </label>
               </div>
-              <button type="submit" className="submit-btn">相性を診断する</button>
+              <button type="submit" className="submit-btn" disabled={isSubmitting}>{isSubmitting ? '診断中...' : '相性を診断する'}</button>
             </form>
           </div>
           <p className="input-footer">6つの占術で2人の相性を総合的に診断します。</p>
@@ -1087,7 +1110,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
               もう一度
             </button>
             <button onClick={() => handlePrintOrDownload('compat-result-screen')} className="fab fab-print" title={isDownloadingPDF ? 'PDF生成中...' : '印刷/PDF保存'} disabled={isDownloadingPDF}>
-              {isDownloadingPDF ? '...' : '印刷'}
+              {isDownloadingPDF ? 'PDF生成中' : '印刷/PDF'}
             </button>
             <button onClick={handleShare} className="fab fab-share" title="シェア">
               共有
@@ -1309,8 +1332,8 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
             <button onClick={() => { setScreen('mode-select'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
               もう一度
             </button>
-            <button onClick={handlePrintOrDownload} className="fab fab-print" title={isDownloadingPDF ? 'PDF生成中...' : '印刷/PDF保存'} disabled={isDownloadingPDF}>
-              {isDownloadingPDF ? '...' : '印刷'}
+            <button onClick={() => handlePrintOrDownload()} className="fab fab-print" title={isDownloadingPDF ? 'PDF生成中...' : '印刷/PDF保存'} disabled={isDownloadingPDF}>
+              {isDownloadingPDF ? 'PDF生成中' : '印刷/PDF'}
             </button>
             <button onClick={handleShare} className="fab fab-share" title="シェア">
               共有
@@ -1326,19 +1349,30 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
 // 3. レンダリング関数
 // ========================================
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 function renderNovel(name: string, data: any, story: any, concern: string): string {
+  const safeName = escapeHtml(name)
+  const safeConcern = escapeHtml(concern)
   return `
     <div class="result-container">
       <header class="result-header">
         <p class="result-label">Fate Decoder</p>
-        <h1 class="result-name">${name} さんへの<br>Grand Master's Reading</h1>
+        <h1 class="result-name">${safeName} さんへの<br>Grand Master's Reading</h1>
       </header>
 
       <section class="data-section">
         <h2 class="section-title">あなたの診断データ</h2>
-        ${concern ? `<div class="concern-box">
+        ${safeConcern ? `<div class="concern-box">
           <div class="concern-label">ご相談内容</div>
-          <div class="concern-text">「${concern}」</div>
+          <div class="concern-text">「${safeConcern}」</div>
         </div>` : ''}
         <div class="data-grid">
           <div class="data-card">
@@ -1403,13 +1437,13 @@ function renderNovel(name: string, data: any, story: any, concern: string): stri
       ${story.chapters ? story.chapters.map((chapter: any) => renderSection(chapter)).join('\n') : ''}
 
       <section class="chapter-section final-section">
-        <span class="chapter-tag">${story.final?.tag || '#まとめ'}</span>
-        <h2 class="chapter-title">${story.final?.title || 'これからのあなたへ'}</h2>
+        <span class="chapter-tag">${escapeHtml(story.final?.tag || '#まとめ')}</span>
+        <h2 class="chapter-title">${escapeHtml(story.final?.title || 'これからのあなたへ')}</h2>
         <div class="chapter-text">
-          <p>${(story.final?.text || 'あなたの可能性は、あなた自身の選択で広がっていきます。').replace(/\n/g, '<br>')}</p>
+          <p>${escapeHtml(story.final?.text || 'あなたの可能性は、あなた自身の選択で広がっていきます。').replace(/\n/g, '<br>')}</p>
           <div class="magic-box">
             <span class="magic-title">今日からできるアクション</span>
-            <strong>${story.final?.magic || '自分を信じて一歩踏み出す'}</strong>
+            <strong>${escapeHtml(story.final?.magic || '自分を信じて一歩踏み出す')}</strong>
           </div>
         </div>
       </section>
@@ -1425,19 +1459,21 @@ function renderSection(part: any) {
   if (!part) return ""
   return `
     <section class="chapter-section">
-      <span class="chapter-tag">${part.tag || '#章'}</span>
-      <h2 class="chapter-title">${part.title || '章'}</h2>
-      <div class="chapter-text"><p>${(part.text || '').replace(/\n/g, '<br>')}</p></div>
+      <span class="chapter-tag">${escapeHtml(part.tag || '#章')}</span>
+      <h2 class="chapter-title">${escapeHtml(part.title || '章')}</h2>
+      <div class="chapter-text"><p>${escapeHtml(part.text || '').replace(/\n/g, '<br>')}</p></div>
     </section>`
 }
 
 function renderPreview(name: string, data: any, concern: string): string {
+  const safeName = escapeHtml(name)
+  const safeConcern = escapeHtml(concern)
   return `
     <div class="result-container">
       <header class="result-header">
         <p class="result-label">Fate Decoder</p>
-        <h1 class="result-name">${name} さんの<br>診断データ</h1>
-        ${concern ? `<p class="preview-concern">「${concern}」</p>` : ''}
+        <h1 class="result-name">${safeName} さんの<br>診断データ</h1>
+        ${safeConcern ? `<p class="preview-concern">「${safeConcern}」</p>` : ''}
       </header>
 
       <div class="preview-notice">

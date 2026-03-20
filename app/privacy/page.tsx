@@ -50,7 +50,7 @@ export default function PrivacyPolicy() {
               収集した個人情報は以下の目的で利用します：
             </p>
             <ul style={{ marginTop: '10px', paddingLeft: '20px' }}>
-              <li>マヤ暦、四柱推命、数秘術、西洋占星術、宿曜に基づく運命鑑定の実施</li>
+              <li>マヤ暦、算命学、四柱推命、数秘術、西洋占星術、宿曜の6占術に基づく運命鑑定の実施</li>
               <li>AI（Gemini）による個別鑑定書の生成</li>
               <li>鑑定結果の記録・保存（Notionデータベース）</li>
               <li>サービス品質向上のための分析</li>

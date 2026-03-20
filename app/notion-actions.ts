@@ -83,8 +83,11 @@ interface StoryData {
 
 export async function fetchStoryFromNotion(pageId: string) {
   try {
-    const NOTION_API_KEY = process.env.NOTION_API_KEY || 'ntn_V40431574219GUgqMrKRCpnpVgLEUoIA9xxfJfisIlu3Ec'
-    
+    const NOTION_API_KEY = process.env.NOTION_API_KEY
+    if (!NOTION_API_KEY) {
+      throw new Error('Notion API key is not configured')
+    }
+
     // Fetch page blocks
     const response = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`, {
       method: 'GET',
@@ -167,8 +170,11 @@ export async function saveToNotion(data: {
   story?: StoryData
 }) {
   try {
-    const NOTION_API_KEY = process.env.NOTION_API_KEY || 'ntn_V40431574219GUgqMrKRCpnpVgLEUoIA9xxfJfisIlu3Ec'
-    const DATABASE_ID = '2f50f0fdafad80c89c82d9260ce171f2'
+    const NOTION_API_KEY = process.env.NOTION_API_KEY
+    if (!NOTION_API_KEY) {
+      throw new Error('Notion API key is not configured')
+    }
+    const DATABASE_ID = process.env.NOTION_DATABASE_ID || '2f50f0fdafad80c89c82d9260ce171f2'
     
     const response = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST',
