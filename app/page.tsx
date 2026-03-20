@@ -546,6 +546,18 @@ ${formatWesternForPrompt(data.western)}
       if (!story || typeof story !== 'object') story = {}
       if (!story.prologue) story.prologue = { tag: '#はじめに', title: 'あなたの物語', text: 'あなたの性格と運命の物語が始まります。' }
       if (!Array.isArray(story.chapters)) story.chapters = []
+
+      // AIがfinalを返さず最後のchapterに「まとめ」を入れるケースの救済
+      if (!story.final && story.chapters.length > 0) {
+        const lastChapter = story.chapters[story.chapters.length - 1]
+        const lastTitle = (lastChapter.title || '').toLowerCase()
+        const lastTag = (lastChapter.tag || '').toLowerCase()
+        if (lastTitle.includes('まとめ') || lastTitle.includes('最終') || lastTitle.includes('これから') ||
+            lastTag.includes('まとめ') || lastTag.includes('最終')) {
+          story.final = { ...lastChapter, magic: lastChapter.magic || '自分を信じて一歩踏み出す' }
+          story.chapters = story.chapters.slice(0, -1)
+        }
+      }
       if (!story.final) story.final = { tag: '#まとめ', title: 'これからのあなたへ', text: 'あなたの可能性は、あなた自身の選択で広がっていきます。', magic: '自分を信じて一歩踏み出す' }
 
       setFullResultData(data)
