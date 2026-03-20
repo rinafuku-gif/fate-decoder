@@ -604,7 +604,11 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
         let filename: string
         if (targetId === 'compat-result-screen' && compatResult) {
           filename = `${compatResult.name1}×${compatResult.name2}_相性診断.pdf`
-        } else if (shortResult) {
+        } else if (targetId === 'tarot-result-screen') {
+          filename = `${tarotUserName || formData.name || 'FateDecoder'}_タロット診断.pdf`
+        } else if (targetId === 'short-result-screen' && shortResult) {
+          filename = `${shortResult.name}_ショート診断.pdf`
+        } else if (shortResult && screen === 'short-result') {
           filename = `${shortResult.name}_診断結果.pdf`
         } else {
           filename = `${formData.name || 'FateDecoder'}_診断結果.pdf`
@@ -620,8 +624,10 @@ ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生�
       const originalTitle = document.title
       if (targetId === 'compat-result-screen' && compatResult) {
         document.title = `${compatResult.name1}×${compatResult.name2}_相性診断`
-      } else if (shortResult) {
-        document.title = `${shortResult.name}_診断結果`
+      } else if (targetId === 'tarot-result-screen') {
+        document.title = `${tarotUserName || formData.name || 'FateDecoder'}_タロット診断`
+      } else if (targetId === 'short-result-screen' && shortResult) {
+        document.title = `${shortResult.name}_ショート診断`
       } else {
         document.title = `${formData.name || 'FateDecoder'}_診断結果`
       }
@@ -1207,7 +1213,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
       )}
 
       {screen === 'tarot-result' && (
-        <div className="tarot-result-screen">
+        <div id="tarot-result-screen" className="tarot-result-screen">
           {/* 浮遊パーティクル背景 */}
           <div className="tarot-particles" aria-hidden="true">
             {Array.from({ length: 20 }).map((_, i) => (
@@ -1316,6 +1322,9 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
             <button onClick={() => { setScreen('mode-select'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
               もう一度
             </button>
+            <button onClick={() => handlePrintOrDownload('tarot-result-screen')} className="fab fab-print" title={isDownloadingPDF ? 'PDF生成中...' : '印刷/PDF保存'} disabled={isDownloadingPDF}>
+              {isDownloadingPDF ? 'PDF生成中' : '印刷/PDF'}
+            </button>
             <button onClick={handleShare} className="fab fab-share" title="シェア">
               共有
             </button>
@@ -1324,7 +1333,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
       )}
 
       {screen === 'short-result' && shortResult && (
-        <div className="short-result-screen">
+        <div id="short-result-screen" className="short-result-screen">
           <header className="short-header">
             <p className="result-label">Fate Decoder</p>
             <h1 className="short-title">{shortResult.name} さんの<br />Short Reading</h1>
@@ -1404,6 +1413,9 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
           <div className="action-bar">
             <button onClick={() => { setScreen('mode-select'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
               もう一度
+            </button>
+            <button onClick={() => handlePrintOrDownload('short-result-screen')} className="fab fab-print" title={isDownloadingPDF ? 'PDF生成中...' : '印刷/PDF保存'} disabled={isDownloadingPDF}>
+              {isDownloadingPDF ? 'PDF生成中' : '印刷/PDF'}
             </button>
             <button onClick={handleShare} className="fab fab-share" title="シェア">
               共有
