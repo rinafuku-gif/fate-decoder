@@ -812,6 +812,309 @@ textarea {
   word-break: keep-all;
 }
 
+/* Divination Groups */
+.divination-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.divination-group {
+  background: var(--c-glass);
+  border: 1px solid var(--c-glass-border);
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+  position: relative;
+}
+.divination-group:hover, .divination-group:active {
+  border-color: var(--c-accent-glow);
+  box-shadow: 0 0 24px rgba(201, 168, 76, 0.08);
+}
+.divination-group:active { transform: scale(0.98); }
+.divination-group-row {
+  display: flex;
+  gap: 12px;
+}
+.divination-group-half {
+  flex: 1;
+  text-align: center;
+}
+.divination-group-single { text-align: center; }
+.group-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--c-text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+.group-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.group-cards .data-card {
+  padding: 10px 6px;
+  border-radius: 10px;
+}
+.group-cards .data-card .data-label {
+  font-size: 0.6rem;
+  margin-bottom: 4px;
+}
+.group-cards .data-card .data-value {
+  font-size: 0.9rem;
+}
+.group-single-value {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--c-accent);
+  margin: 4px 0;
+}
+.group-single-sublabel {
+  font-size: 0.6rem;
+  color: var(--c-text-muted);
+  display: block;
+}
+.group-tap-hint {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--c-text-muted);
+  text-align: right;
+  margin-top: 8px;
+  opacity: 0.7;
+}
+
+/* Western Astrology Summary */
+.western-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.western-planets-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.western-planet-chip {
+  font-size: 0.72rem;
+  color: var(--c-text);
+  background: rgba(255,255,255,0.04);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.06);
+  white-space: nowrap;
+}
+.western-balance-bar {
+  display: flex;
+  gap: 8px;
+}
+.element-pip {
+  font-size: 0.68rem;
+  color: var(--c-text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.element-pip-active {
+  color: var(--c-accent);
+  background: var(--c-accent-light);
+}
+.western-retro-note {
+  font-size: 0.62rem;
+  color: var(--c-text-muted);
+  font-style: italic;
+}
+
+/* Detail Modal / Bottom Sheet */
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+.detail-sheet {
+  background: #1a1827;
+  border: 1px solid var(--c-glass-border);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 28px 24px 40px;
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+.detail-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--c-text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+.detail-close:hover { color: var(--c-text); }
+.detail-title {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--c-accent);
+  margin: 0 0 8px;
+}
+.detail-intro {
+  font-size: 0.75rem;
+  color: var(--c-text-sub);
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+.detail-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.detail-item {
+  background: var(--c-glass);
+  border: 1px solid var(--c-glass-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.detail-item-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--c-text-sub);
+  display: block;
+  margin-bottom: 4px;
+}
+.detail-item-value {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--c-accent);
+  display: block;
+  margin-bottom: 4px;
+}
+.detail-item-desc {
+  font-size: 0.68rem;
+  color: var(--c-text-muted);
+  display: block;
+  line-height: 1.5;
+}
+.detail-item-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+}
+.detail-item-inline .detail-item-label {
+  margin: 0;
+  font-size: 0.72rem;
+}
+.detail-item-inline .detail-item-value {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.detail-section-divider {
+  height: 1px;
+  background: var(--c-border);
+  margin: 16px 0;
+}
+.detail-subtitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--c-text-sub);
+  margin: 0 0 8px;
+}
+.detail-element-bar {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.detail-element-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.detail-element-name {
+  font-size: 0.72rem;
+  color: var(--c-text-sub);
+  font-weight: 700;
+}
+.detail-element-pips {
+  display: flex;
+  gap: 3px;
+  min-height: 10px;
+}
+.detail-pip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-accent);
+}
+.detail-element-count {
+  font-size: 0.75rem;
+  color: var(--c-accent);
+  font-weight: 700;
+}
+.detail-moon-phase {
+  font-size: 1rem;
+  color: var(--c-text);
+  margin: 0 0 4px;
+}
+.detail-moon-note {
+  font-size: 0.65rem;
+  color: var(--c-text-muted);
+  font-style: italic;
+}
+.detail-aspects-note {
+  font-size: 0.62rem;
+  color: var(--c-text-muted);
+  margin: 0 0 8px;
+}
+.detail-aspect-nature {
+  font-size: 0.6rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.detail-aspect-hard {
+  background: rgba(220, 80, 80, 0.15);
+  color: #e07070;
+}
+.detail-aspect-soft {
+  background: rgba(80, 180, 120, 0.15);
+  color: #60c090;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Desktop: Modal instead of Bottom Sheet */
+@media (min-width: 768px) {
+  .detail-overlay {
+    align-items: center;
+  }
+  .detail-sheet {
+    border-radius: 20px;
+    max-height: 70vh;
+  }
+}
+
 /* Chapter Sections */
 .chapter-section {
   margin-bottom: 48px;
