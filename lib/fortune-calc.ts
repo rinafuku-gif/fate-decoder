@@ -1,7 +1,9 @@
 // ========================================
-// 占術計算ロジック (修正版 v2 - 全8テスト合格済み)
+// 占術計算ロジック (修正版 v3 - ホロスコープ統合)
 // スタンドアロンモジュール — React/UI依存なし
 // ========================================
+
+import { calculateHoroscope } from './horoscope-calc'
 
 // ---------- 定数 ----------
 
@@ -45,11 +47,26 @@ export interface SanmeigakuResult {
   dayStem: string
 }
 
+export interface WesternData {
+  sign: string  // 太陽星座（後方互換）
+  planets: Array<{ name: string; sign: string; isRetrograde: boolean }>
+  tightAspects: Array<{ desc: string; nature: string }>
+  moonPhase: string
+  moonPhaseEmoji: string
+  elementBalance: { fire: number; earth: number; air: number; water: number }
+  dominantElement: string
+  qualityBalance: { cardinal: number; fixed: number; mutable: number }
+  retrograding: string[]
+  moonCrossesSigns: boolean
+  moonRangeStart: string
+  moonRangeEnd: string
+}
+
 export interface FortuneResult {
   date: string
   maya: { kin: number; glyph: string; tone: string; ws: string }
   numerology: { lp: string }
-  western: { sign: string }
+  western: WesternData
   bazi: { stem: string; weapon: string }
   sanmeigaku: SanmeigakuResult
   sukuyo: string
@@ -370,14 +387,49 @@ function getElement(sign: string): string {
   return '不明'
 }
 
-function westernCompatibility(sign1: string, sign2: string): { score: number; detail: string } {
-  const e1 = getElement(sign1), e2 = getElement(sign2)
-  if (e1 === e2) return { score: 85, detail: `同じ${e1}のエレメント同士。自然体でいられる関係` }
+function westernCompatibility(w1: WesternData, w2: WesternData): { score: number; detail: string } {
+  // 太陽エレメント相性（基本スコア）
+  const sunE1 = getElement(w1.sign), sunE2 = getElement(w2.sign)
   const good: Record<string, string> = { '火': '風', '風': '火', '地': '水', '水': '地' }
-  if (good[e1] === e2) return { score: 90, detail: `${e1}×${e2}の好相性。互いの力を引き出し合える関係` }
-  const neutral: Record<string, string> = { '火': '地', '地': '火', '風': '水', '水': '風' }
-  if (neutral[e1] === e2) return { score: 60, detail: `${e1}×${e2}。異なる価値観が新鮮な刺激になる関係` }
-  return { score: 70, detail: `${e1}×${e2}。違いを認め合うことで成長できる関係` }
+  let baseScore: number
+  let details: string[] = []
+
+  if (sunE1 === sunE2) {
+    baseScore = 85
+    details.push(`太陽が同じ${sunE1}のエレメントで自然体でいられる`)
+  } else if (good[sunE1] === sunE2) {
+    baseScore = 90
+    details.push(`太陽の${sunE1}×${sunE2}が好相性で互いの力を引き出す`)
+  } else {
+    baseScore = 65
+    details.push(`太陽の${sunE1}×${sunE2}は異なる価値観が刺激になる`)
+  }
+
+  // 月の相性ボーナス（両者の月星座が確定している場合のみ）
+  const moon1 = w1.planets[1]?.sign, moon2 = w2.planets[1]?.sign
+  if (moon1 && moon2 && !w1.moonCrossesSigns && !w2.moonCrossesSigns) {
+    const moonE1 = getElement(moon1), moonE2 = getElement(moon2)
+    if (moonE1 === moonE2) {
+      baseScore += 4
+      details.push(`月も同じ${moonE1}で感情面の相性◎`)
+    } else if (good[moonE1] === moonE2) {
+      baseScore += 3
+      details.push(`月の${moonE1}×${moonE2}も好相性`)
+    }
+  }
+
+  // 金星の相性（愛情表現の一致）
+  const venus1 = w1.planets.find(p => p.name === '金星')?.sign
+  const venus2 = w2.planets.find(p => p.name === '金星')?.sign
+  if (venus1 && venus2) {
+    const vE1 = getElement(venus1), vE2 = getElement(venus2)
+    if (vE1 === vE2) {
+      baseScore += 3
+      details.push(`金星が同じ${vE1}で愛情表現が似ている`)
+    }
+  }
+
+  return { score: Math.min(98, baseScore), detail: details.join('。') + '。' }
 }
 
 // 数秘術: ライフパスナンバー相性
@@ -507,7 +559,7 @@ function sukuyoCompatibility(sukuyo1: string, sukuyo2: string): { score: number;
 }
 
 export function calculateCompatibility(data1: FortuneResult, data2: FortuneResult): CompatibilityScore {
-  const western = westernCompatibility(data1.western.sign, data2.western.sign)
+  const western = westernCompatibility(data1.western, data2.western)
   const numerology = numerologyCompatibility(data1.numerology.lp, data2.numerology.lp)
   const maya = mayaCompatibility(data1.maya.glyph, data2.maya.glyph, data1.maya.kin, data2.maya.kin)
   const sanmeigaku = sanmeigakuCompatibility(data1.bazi.weapon, data2.bazi.weapon)
@@ -550,10 +602,49 @@ export function calculateAll(y: number, m: number, d: number): FortuneResult {
   }
   const lp = reduce(s)
 
-  // 西洋占星術
-  const signs = ["山羊座", "水瓶座", "魚座", "牡羊座", "牡牛座", "双子座", "蟹座", "獅子座", "乙女座", "天秤座", "蠍座", "射手座"]
-  const borders = [20, 19, 21, 20, 21, 22, 23, 23, 23, 24, 23, 22]
-  const sign = d >= borders[m - 1] ? signs[m % 12] : signs[(m - 1 + 12) % 12]
+  // 西洋占星術（ホロスコープ — 出生時間不明のため正午JSTで計算）
+  const noonJST = new Date(Date.UTC(y, m - 1, d, 3, 0, 0)) // 12:00 JST = 3:00 UTC
+  const horoscope = calculateHoroscope(noonJST)
+  const sign = horoscope.planets[0].sign // 太陽星座
+
+  // 月の星座確定チェック（0:00〜23:59 JSTの移動範囲）
+  const dayStartJST = new Date(Date.UTC(y, m - 1, d - 1, 15, 0, 0)) // 0:00 JST
+  const dayEndJST = new Date(Date.UTC(y, m - 1, d, 14, 59, 0))      // 23:59 JST
+  const moonStart = calculateHoroscope(dayStartJST).planets[1]
+  const moonEnd = calculateHoroscope(dayEndJST).planets[1]
+  const moonCrossesSigns = moonStart.sign !== moonEnd.sign
+
+  // 天体データを抽出
+  const planets = horoscope.planets.map(p => ({
+    name: p.name, sign: p.sign, isRetrograde: p.isRetrograde,
+  }))
+  const tightAspects = horoscope.aspects
+    .filter(a => a.orb <= 3)
+    .map(a => ({ desc: `${a.planet1}${a.symbol}${a.planet2}(${a.orb}°)`, nature: a.nature }))
+  const retrograding = horoscope.planets.filter(p => p.isRetrograde).map(p => p.name)
+
+  // エレメント優勢判定（同点時は全て列挙）
+  const eb = horoscope.elementBalance
+  const maxVal = Math.max(eb.fire, eb.earth, eb.air, eb.water)
+  const elementNames = ['火', '地', '風', '水'] as const
+  const elementVals = [eb.fire, eb.earth, eb.air, eb.water]
+  const topElements = elementNames.filter((_, i) => elementVals[i] === maxVal)
+  const dominantElement = topElements.join('・')
+
+  const western: WesternData = {
+    sign,
+    planets,
+    tightAspects,
+    moonPhase: horoscope.moonPhase.phase,
+    moonPhaseEmoji: horoscope.moonPhase.emoji,
+    elementBalance: horoscope.elementBalance,
+    dominantElement,
+    qualityBalance: horoscope.qualityBalance,
+    retrograding,
+    moonCrossesSigns,
+    moonRangeStart: moonStart.sign,
+    moonRangeEnd: moonEnd.sign,
+  }
 
   // 算命学
   const sanmeigaku = calculateSanmeigaku(y, m, d)
@@ -565,7 +656,7 @@ export function calculateAll(y: number, m: number, d: number): FortuneResult {
     date: `${y}-${m}-${d}`,
     maya: { kin: k, glyph: GLYPHS[gIdx], tone: TONES[tIdx], ws: GLYPHS[wsRoot] },
     numerology: { lp },
-    western: { sign },
+    western,
     bazi: { stem: sanmeigaku.dayStem, weapon: sanmeigaku.mainStar },
     sanmeigaku,
     sukuyo
