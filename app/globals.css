@@ -906,6 +906,11 @@ textarea {
   border: 1px solid rgba(255,255,255,0.06);
   white-space: nowrap;
 }
+.western-planet-uncertain {
+  border-color: rgba(201, 168, 76, 0.3);
+  border-style: dashed;
+  font-size: 0.65rem;
+}
 .western-balance-bar {
   display: flex;
   gap: 8px;

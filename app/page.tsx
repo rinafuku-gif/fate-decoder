@@ -15,11 +15,17 @@ function formatWesternForPrompt(w: WesternData): string {
   }
   const mainPlanets = w.planets
     .filter(p => !['正真交点', 'カイロン'].includes(p.name))
-    .map(p => `${symbols[p.name] || ''}${p.name}=${p.sign}${p.isRetrograde ? '℞' : ''}`)
+    .map(p => {
+      // 月が星座をまたぐ場合は断定しない
+      if (p.name === '月' && w.moonCrossesSigns) {
+        return `${symbols[p.name]}月=${w.moonRangeStart}または${w.moonRangeEnd}（出生時間で変わる・断定不可）`
+      }
+      return `${symbols[p.name] || ''}${p.name}=${p.sign}${p.isRetrograde ? '℞' : ''}`
+    })
     .join(' / ')
 
   const moonNote = w.moonCrossesSigns
-    ? `（※出生時間により${w.moonRangeStart}〜${w.moonRangeEnd}で変動）`
+    ? `【重要】月の星座は出生時間不明のため${w.moonRangeStart}か${w.moonRangeEnd}のどちらかが確定できません。リーディングでは月の星座を断定せず「${w.moonRangeStart}または${w.moonRangeEnd}の可能性がある」という表現にしてください`
     : ''
 
   const eb = w.elementBalance
@@ -1436,11 +1442,17 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                   <div className="western-planets-row">
                     {shortResult.data.western.planets
                       .filter((p: any) => ['太陽', '月', '水星', '金星', '火星'].includes(p.name))
-                      .map((p: any) => (
-                        <span key={p.name} className="western-planet-chip">
-                          {{'太陽':'☉','月':'☽','水星':'☿','金星':'♀','火星':'♂'}[p.name as string]}{p.sign.replace('座','')}{p.isRetrograde ? '℞' : ''}
-                        </span>
-                      ))}
+                      .map((p: any) => {
+                        const isMoonUncertain = p.name === '月' && shortResult.data.western.moonCrossesSigns
+                        const moonText = isMoonUncertain
+                          ? `${shortResult.data.western.moonRangeStart.replace('座','')}/${shortResult.data.western.moonRangeEnd.replace('座','')}`
+                          : p.sign.replace('座','')
+                        return (
+                          <span key={p.name} className={`western-planet-chip ${isMoonUncertain ? 'western-planet-uncertain' : ''}`}>
+                            {{'太陽':'☉','月':'☽','水星':'☿','金星':'♀','火星':'♂'}[p.name as string]}{moonText}{p.isRetrograde ? '℞' : ''}
+                          </span>
+                        )
+                      })}
                   </div>
                   <div className="western-balance-bar">
                     {(['火','地','風','水'] as const).map(el => {
