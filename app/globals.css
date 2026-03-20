@@ -898,13 +898,14 @@ textarea {
   gap: 6px;
 }
 .western-planet-chip {
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   color: var(--c-text);
-  background: rgba(255,255,255,0.04);
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.06);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
   white-space: nowrap;
+  font-weight: 500;
 }
 .western-planet-uncertain {
   border-color: rgba(201, 168, 76, 0.3);
@@ -916,10 +917,11 @@ textarea {
   gap: 8px;
 }
 .element-pip {
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   color: var(--c-text-muted);
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 600;
 }
 .element-pip-active {
   color: var(--c-accent);

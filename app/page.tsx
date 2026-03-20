@@ -111,6 +111,7 @@ export default function FateDecoder() {
   })
   const [consentChecked, setConsentChecked] = useState(false)
   const [resultHtml, setResultHtml] = useState('')
+  const [fullResultData, setFullResultData] = useState<FortuneResult | null>(null)
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false)
   const [isProcessingInBackground, setIsProcessingInBackground] = useState(false)
   const [isInAppBrowser, setIsInAppBrowser] = useState(false)
@@ -175,6 +176,7 @@ export default function FateDecoder() {
             const bh = params.get('birthHour'), bm = params.get('birthMinute')
             const data = calculateAll(parseInt(year), parseInt(month), parseInt(day), bh ? parseInt(bh) : undefined, bm ? parseInt(bm) : undefined)
             const concern = params.get('concern') || ''
+            setFullResultData(data)
             setResultHtml(renderNovel(name, data, story, decodeURIComponent(concern)))
             setScreen('result')
           } else {
@@ -546,6 +548,7 @@ ${formatWesternForPrompt(data.western)}
       if (!Array.isArray(story.chapters)) story.chapters = []
       if (!story.final) story.final = { tag: '#まとめ', title: 'これからのあなたへ', text: 'あなたの可能性は、あなた自身の選択で広がっていきます。', magic: '自分を信じて一歩踏み出す' }
 
+      setFullResultData(data)
       setResultHtml(renderNovel(formData.name, data, story, formData.concern))
 
       const params = new URLSearchParams()
@@ -1476,113 +1479,6 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
               </div>
             </div>
 
-            {/* 占術詳細モーダル */}
-            {detailModal && shortResult && (
-              <div className="detail-overlay" onClick={() => setDetailModal(null)}>
-                <div className="detail-sheet" onClick={e => e.stopPropagation()}>
-                  <button className="detail-close" onClick={() => setDetailModal(null)}>&times;</button>
-                  {detailModal === 'maya' && (
-                    <>
-                      <h3 className="detail-title">マヤ暦</h3>
-                      <p className="detail-intro">マヤ文明の260日周期の暦。あなたの生まれた日のエネルギーを読み解きます。</p>
-                      <div className="detail-items">
-                        <div className="detail-item"><span className="detail-item-label">KIN番号</span><span className="detail-item-value">{shortResult.data.maya.kin}</span><span className="detail-item-desc">260日周期のうち、あなたの魂が選んだ番号</span></div>
-                        <div className="detail-item"><span className="detail-item-label">太陽の紋章</span><span className="detail-item-value">{shortResult.data.maya.glyph}</span><span className="detail-item-desc">表に出る性格・社会的な顔</span></div>
-                        <div className="detail-item"><span className="detail-item-label">ウェイブスペル</span><span className="detail-item-value">{shortResult.data.maya.ws}</span><span className="detail-item-desc">内に秘めた本質・潜在意識</span></div>
-                        <div className="detail-item"><span className="detail-item-label">銀河の音</span><span className="detail-item-value">{shortResult.data.maya.tone}</span><span className="detail-item-desc">人生における役割・才能の方向性</span></div>
-                      </div>
-                    </>
-                  )}
-                  {detailModal === 'numerology' && (
-                    <>
-                      <h3 className="detail-title">数秘術</h3>
-                      <p className="detail-intro">生年月日の数字を1桁になるまで足し合わせた「ライフパスナンバー」。あなたの人生のテーマを表します。</p>
-                      <div className="detail-items">
-                        <div className="detail-item"><span className="detail-item-label">ライフパスナンバー</span><span className="detail-item-value">{shortResult.data.numerology.lp}</span><span className="detail-item-desc">人生を通じて学ぶテーマ・魂の目的</span></div>
-                      </div>
-                    </>
-                  )}
-                  {detailModal === 'sanmeigaku' && (
-                    <>
-                      <h3 className="detail-title">算命学</h3>
-                      <p className="detail-intro">中国発祥の命理学。生年月日から導かれる「中心星」があなたの本質を表します。</p>
-                      <div className="detail-items">
-                        <div className="detail-item"><span className="detail-item-label">中心星</span><span className="detail-item-value">{shortResult.data.bazi.weapon}</span><span className="detail-item-desc">あなたの本質的な性格・行動パターン</span></div>
-                        <div className="detail-item"><span className="detail-item-label">日干</span><span className="detail-item-value">{shortResult.data.bazi.stem}</span><span className="detail-item-desc">あなたの基本エネルギー</span></div>
-                      </div>
-                    </>
-                  )}
-                  {detailModal === 'shichusuimei' && (
-                    <>
-                      <h3 className="detail-title">四柱推命</h3>
-                      <p className="detail-intro">生年月日を「年・月・日」の3つの柱（干支の組み合わせ）で表し、運命を読み解きます。</p>
-                      <div className="detail-items">
-                        <div className="detail-item"><span className="detail-item-label">日柱</span><span className="detail-item-value">{shortResult.data.sanmeigaku.day}</span><span className="detail-item-desc">あなた自身を表す最も重要な柱</span></div>
-                        <div className="detail-item"><span className="detail-item-label">月柱</span><span className="detail-item-value">{shortResult.data.sanmeigaku.month}</span><span className="detail-item-desc">社会での立ち位置・仕事運</span></div>
-                        <div className="detail-item"><span className="detail-item-label">年柱</span><span className="detail-item-value">{shortResult.data.sanmeigaku.year}</span><span className="detail-item-desc">家庭環境・親からの影響</span></div>
-                      </div>
-                    </>
-                  )}
-                  {detailModal === 'western' && (
-                    <>
-                      <h3 className="detail-title">西洋占星術（ホロスコープ）</h3>
-                      <p className="detail-intro">生まれた瞬間の天体配置図。10の天体がそれぞれ異なる性格の側面を表します。</p>
-                      <div className="detail-items">
-                        {shortResult.data.western.planets
-                          .filter((p: any) => !['正真交点', 'カイロン'].includes(p.name))
-                          .map((p: any) => (
-                            <div key={p.name} className="detail-item detail-item-inline">
-                              <span className="detail-item-label">{{'太陽':'☉ 太陽','月':'☽ 月','水星':'☿ 水星','金星':'♀ 金星','火星':'♂ 火星','木星':'♃ 木星','土星':'♄ 土星','天王星':'♅ 天王星','海王星':'♆ 海王星','冥王星':'♇ 冥王星'}[p.name as string] || p.name}</span>
-                              <span className="detail-item-value">{p.sign}{p.isRetrograde ? ' ℞' : ''}</span>
-                            </div>
-                          ))}
-                      </div>
-                      <div className="detail-section-divider" />
-                      <h4 className="detail-subtitle">エレメントバランス</h4>
-                      <div className="detail-element-bar">
-                        {(['火','地','風','水'] as const).map(el => {
-                          const key = {火:'fire',地:'earth',風:'air',水:'water'}[el] as keyof typeof shortResult.data.western.elementBalance
-                          const val = shortResult.data.western.elementBalance[key]
-                          return <div key={el} className="detail-element-item"><span className="detail-element-name">{el}</span><div className="detail-element-pips">{Array.from({length: val}).map((_,i) => <span key={i} className="detail-pip-dot" />)}</div><span className="detail-element-count">{val}</span></div>
-                        })}
-                      </div>
-                      <div className="detail-section-divider" />
-                      <h4 className="detail-subtitle">月相</h4>
-                      <p className="detail-moon-phase">{shortResult.data.western.moonPhaseEmoji} {shortResult.data.western.moonPhase}</p>
-                      {shortResult.data.western.moonCrossesSigns && (
-                        <p className="detail-moon-note">※ 月は出生時間により{shortResult.data.western.moonRangeStart}〜{shortResult.data.western.moonRangeEnd}で変動します</p>
-                      )}
-                      {shortResult.data.western.tightAspects.length > 0 && (
-                        <>
-                          <div className="detail-section-divider" />
-                          <h4 className="detail-subtitle">主要アスペクト</h4>
-                          <p className="detail-aspects-note">天体同士の角度関係。近いほど影響が強い</p>
-                          <div className="detail-items">
-                            {shortResult.data.western.tightAspects.map((a: any, i: number) => (
-                              <div key={i} className="detail-item detail-item-inline">
-                                <span className="detail-item-value">{a.desc}</span>
-                                <span className={`detail-aspect-nature ${a.nature === 'hard' ? 'detail-aspect-hard' : a.nature === 'soft' ? 'detail-aspect-soft' : ''}`}>
-                                  {a.nature === 'hard' ? '緊張' : a.nature === 'soft' ? '調和' : '強調'}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
-                  {detailModal === 'sukuyo' && (
-                    <>
-                      <h3 className="detail-title">宿曜占星術</h3>
-                      <p className="detail-intro">インド占星術をルーツとする東洋の星座。月の位置から27の「宿」に分類し、性格と相性を読み解きます。</p>
-                      <div className="detail-items">
-                        <div className="detail-item"><span className="detail-item-label">本命宿</span><span className="detail-item-value">{shortResult.data.sukuyo}</span><span className="detail-item-desc">あなたの生まれた日の月が位置する宿（東洋の星座）</span></div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
           </section>
 
           <div className="short-readings">
@@ -1649,7 +1545,89 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
 
       {screen === 'result' && (
         <>
-          <div id="result-screen" dangerouslySetInnerHTML={{ __html: resultHtml }} />
+          <div id="result-screen">
+            <div dangerouslySetInnerHTML={{ __html: resultHtml.split('<div id="react-data-cards-placeholder"></div>')[0] }} />
+
+            {/* React描画のインタラクティブ診断データカード */}
+            {fullResultData && (
+              <section className="short-data" style={{ margin: '0 auto 32px', maxWidth: 640, padding: '0 20px' }}>
+                <h2 className="short-section-title">あなたの診断データ</h2>
+                <div className="divination-groups">
+                  <div className="divination-group" onClick={() => setDetailModal('maya')}>
+                    <h3 className="group-label">マヤ暦</h3>
+                    <div className="group-cards">
+                      <div className="data-card"><span className="data-label">KIN{fullResultData.maya.kin}</span><span className="data-value">{fullResultData.maya.glyph}</span></div>
+                      <div className="data-card"><span className="data-label">WS</span><span className="data-value">{fullResultData.maya.ws}</span></div>
+                      <div className="data-card"><span className="data-label">音</span><span className="data-value">{fullResultData.maya.tone}</span></div>
+                    </div>
+                    <span className="group-tap-hint">タップで詳細 ▸</span>
+                  </div>
+                  <div className="divination-group-row">
+                    <div className="divination-group divination-group-half" onClick={() => setDetailModal('numerology')}>
+                      <h3 className="group-label">数秘術</h3>
+                      <div className="group-single-value">{fullResultData.numerology.lp}</div>
+                      <span className="group-single-sublabel">ライフパスナンバー</span>
+                      <span className="group-tap-hint">詳細 ▸</span>
+                    </div>
+                    <div className="divination-group divination-group-half" onClick={() => setDetailModal('sanmeigaku')}>
+                      <h3 className="group-label">算命学</h3>
+                      <div className="group-single-value">{fullResultData.bazi.weapon}</div>
+                      <span className="group-single-sublabel">中心星</span>
+                      <span className="group-tap-hint">詳細 ▸</span>
+                    </div>
+                  </div>
+                  <div className="divination-group" onClick={() => setDetailModal('shichusuimei')}>
+                    <h3 className="group-label">四柱推命</h3>
+                    <div className="group-cards">
+                      <div className="data-card"><span className="data-label">日柱</span><span className="data-value">{fullResultData.sanmeigaku.day}</span></div>
+                      <div className="data-card"><span className="data-label">月柱</span><span className="data-value">{fullResultData.sanmeigaku.month}</span></div>
+                      <div className="data-card"><span className="data-label">年柱</span><span className="data-value">{fullResultData.sanmeigaku.year}</span></div>
+                    </div>
+                    <span className="group-tap-hint">タップで詳細 ▸</span>
+                  </div>
+                  <div className="divination-group" onClick={() => setDetailModal('western')}>
+                    <h3 className="group-label">西洋占星術</h3>
+                    <div className="western-summary">
+                      <div className="western-planets-row">
+                        {fullResultData.western.planets
+                          .filter(p => !['正真交点', 'カイロン'].includes(p.name))
+                          .slice(0, 5)
+                          .map(p => {
+                            const isMoonUncertain = p.name === '月' && fullResultData.western.moonCrossesSigns
+                            const text = isMoonUncertain
+                              ? `${fullResultData.western.moonRangeStart.replace('座','')}/${fullResultData.western.moonRangeEnd.replace('座','')}`
+                              : p.sign.replace('座','')
+                            return (
+                              <span key={p.name} className={`western-planet-chip ${isMoonUncertain ? 'western-planet-uncertain' : ''}`}>
+                                {{'太陽':'☉','月':'☽','水星':'☿','金星':'♀','火星':'♂'}[p.name as string]}{text}{p.isRetrograde ? '℞' : ''}
+                              </span>
+                            )
+                          })}
+                      </div>
+                      <div className="western-balance-bar">
+                        {(['火','地','風','水'] as const).map(el => {
+                          const val = fullResultData.western.elementBalance[{火:'fire',地:'earth',風:'air',水:'water'}[el] as keyof typeof fullResultData.western.elementBalance]
+                          return <span key={el} className={`element-pip ${val > 0 ? 'element-pip-active' : ''}`}>{el}{val}</span>
+                        })}
+                      </div>
+                      {fullResultData.western.retrograding.length > 0 && (
+                        <div className="western-retro-note">{fullResultData.western.retrograding.join('・')}逆行中</div>
+                      )}
+                    </div>
+                    <span className="group-tap-hint">タップで全天体・アスペクト詳細 ▸</span>
+                  </div>
+                  <div className="divination-group divination-group-single" onClick={() => setDetailModal('sukuyo')}>
+                    <h3 className="group-label">宿曜占星術</h3>
+                    <div className="group-single-value">{fullResultData.sukuyo}</div>
+                    <span className="group-single-sublabel">東洋の星座</span>
+                    <span className="group-tap-hint">詳細 ▸</span>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <div dangerouslySetInnerHTML={{ __html: resultHtml.split('<div id="react-data-cards-placeholder"></div>')[1] || '' }} />
+          </div>
           <div className="action-bar">
             <button onClick={() => { setScreen('mode-select'); window.scrollTo(0, 0) }} className="fab fab-back" title="新しく診断する">
               もう一度
@@ -1663,6 +1641,118 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
           </div>
         </>
       )}
+
+      {/* 占術詳細モーダル（全画面共通） */}
+      {detailModal && (() => {
+        const md = (shortResult?.data || fullResultData) as FortuneResult | null
+        if (!md) return null
+        return (
+          <div className="detail-overlay" onClick={() => setDetailModal(null)}>
+            <div className="detail-sheet" onClick={e => e.stopPropagation()}>
+              <button className="detail-close" onClick={() => setDetailModal(null)}>&times;</button>
+              {detailModal === 'maya' && (
+                <>
+                  <h3 className="detail-title">マヤ暦</h3>
+                  <p className="detail-intro">マヤ文明の260日周期の暦。あなたの生まれた日のエネルギーを読み解きます。</p>
+                  <div className="detail-items">
+                    <div className="detail-item"><span className="detail-item-label">KIN番号</span><span className="detail-item-value">{md.maya.kin}</span><span className="detail-item-desc">260日周期のうち、あなたの魂が選んだ番号</span></div>
+                    <div className="detail-item"><span className="detail-item-label">太陽の紋章</span><span className="detail-item-value">{md.maya.glyph}</span><span className="detail-item-desc">表に出る性格・社会的な顔</span></div>
+                    <div className="detail-item"><span className="detail-item-label">ウェイブスペル</span><span className="detail-item-value">{md.maya.ws}</span><span className="detail-item-desc">内に秘めた本質・潜在意識</span></div>
+                    <div className="detail-item"><span className="detail-item-label">銀河の音</span><span className="detail-item-value">{md.maya.tone}</span><span className="detail-item-desc">人生における役割・才能の方向性</span></div>
+                  </div>
+                </>
+              )}
+              {detailModal === 'numerology' && (
+                <>
+                  <h3 className="detail-title">数秘術</h3>
+                  <p className="detail-intro">生年月日の数字を1桁になるまで足し合わせた「ライフパスナンバー」。あなたの人生のテーマを表します。</p>
+                  <div className="detail-items">
+                    <div className="detail-item"><span className="detail-item-label">ライフパスナンバー</span><span className="detail-item-value">{md.numerology.lp}</span><span className="detail-item-desc">人生を通じて学ぶテーマ・魂の目的</span></div>
+                  </div>
+                </>
+              )}
+              {detailModal === 'sanmeigaku' && (
+                <>
+                  <h3 className="detail-title">算命学</h3>
+                  <p className="detail-intro">中国発祥の命理学。生年月日から導かれる「中心星」があなたの本質を表します。</p>
+                  <div className="detail-items">
+                    <div className="detail-item"><span className="detail-item-label">中心星</span><span className="detail-item-value">{md.bazi.weapon}</span><span className="detail-item-desc">あなたの本質的な性格・行動パターン</span></div>
+                    <div className="detail-item"><span className="detail-item-label">日干</span><span className="detail-item-value">{md.bazi.stem}</span><span className="detail-item-desc">あなたの基本エネルギー</span></div>
+                  </div>
+                </>
+              )}
+              {detailModal === 'shichusuimei' && (
+                <>
+                  <h3 className="detail-title">四柱推命</h3>
+                  <p className="detail-intro">生年月日を「年・月・日」の3つの柱（干支の組み合わせ）で表し、運命を読み解きます。</p>
+                  <div className="detail-items">
+                    <div className="detail-item"><span className="detail-item-label">日柱</span><span className="detail-item-value">{md.sanmeigaku.day}</span><span className="detail-item-desc">あなた自身を表す最も重要な柱</span></div>
+                    <div className="detail-item"><span className="detail-item-label">月柱</span><span className="detail-item-value">{md.sanmeigaku.month}</span><span className="detail-item-desc">社会での立ち位置・仕事運</span></div>
+                    <div className="detail-item"><span className="detail-item-label">年柱</span><span className="detail-item-value">{md.sanmeigaku.year}</span><span className="detail-item-desc">家庭環境・親からの影響</span></div>
+                  </div>
+                </>
+              )}
+              {detailModal === 'western' && (
+                <>
+                  <h3 className="detail-title">西洋占星術（ホロスコープ）</h3>
+                  <p className="detail-intro">生まれた瞬間の天体配置図。10の天体がそれぞれ異なる性格の側面を表します。</p>
+                  <div className="detail-items">
+                    {md.western.planets
+                      .filter(p => !['正真交点', 'カイロン'].includes(p.name))
+                      .map(p => (
+                        <div key={p.name} className="detail-item detail-item-inline">
+                          <span className="detail-item-label">{{'太陽':'☉ 太陽','月':'☽ 月','水星':'☿ 水星','金星':'♀ 金星','火星':'♂ 火星','木星':'♃ 木星','土星':'♄ 土星','天王星':'♅ 天王星','海王星':'♆ 海王星','冥王星':'♇ 冥王星'}[p.name] || p.name}</span>
+                          <span className="detail-item-value">{p.sign}{p.isRetrograde ? ' ℞' : ''}</span>
+                        </div>
+                      ))}
+                  </div>
+                  <div className="detail-section-divider" />
+                  <h4 className="detail-subtitle">エレメントバランス</h4>
+                  <div className="detail-element-bar">
+                    {(['火','地','風','水'] as const).map(el => {
+                      const key = {火:'fire',地:'earth',風:'air',水:'water'}[el] as keyof typeof md.western.elementBalance
+                      const val = md.western.elementBalance[key]
+                      return <div key={el} className="detail-element-item"><span className="detail-element-name">{el}</span><div className="detail-element-pips">{Array.from({length: val}).map((_,i) => <span key={i} className="detail-pip-dot" />)}</div><span className="detail-element-count">{val}</span></div>
+                    })}
+                  </div>
+                  <div className="detail-section-divider" />
+                  <h4 className="detail-subtitle">月相</h4>
+                  <p className="detail-moon-phase">{md.western.moonPhaseEmoji} {md.western.moonPhase}</p>
+                  {md.western.moonCrossesSigns && (
+                    <p className="detail-moon-note">※ 月は出生時間により{md.western.moonRangeStart}〜{md.western.moonRangeEnd}で変動します</p>
+                  )}
+                  {md.western.tightAspects.length > 0 && (
+                    <>
+                      <div className="detail-section-divider" />
+                      <h4 className="detail-subtitle">主要アスペクト</h4>
+                      <p className="detail-aspects-note">天体同士の角度関係。近いほど影響が強い</p>
+                      <div className="detail-items">
+                        {md.western.tightAspects.map((a, i) => (
+                          <div key={i} className="detail-item detail-item-inline">
+                            <span className="detail-item-value">{a.desc}</span>
+                            <span className={`detail-aspect-nature ${a.nature === 'hard' ? 'detail-aspect-hard' : a.nature === 'soft' ? 'detail-aspect-soft' : ''}`}>
+                              {a.nature === 'hard' ? '緊張' : a.nature === 'soft' ? '調和' : '強調'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+              {detailModal === 'sukuyo' && (
+                <>
+                  <h3 className="detail-title">宿曜占星術</h3>
+                  <p className="detail-intro">インド占星術をルーツとする東洋の星座。月の位置から27の「宿」に分類し、性格と相性を読み解きます。</p>
+                  <div className="detail-items">
+                    <div className="detail-item"><span className="detail-item-label">本命宿</span><span className="detail-item-value">{md.sukuyo}</span><span className="detail-item-desc">あなたの生まれた日の月が位置する宿（東洋の星座）</span></div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )
+      })()}
     </>
   )
 }
@@ -1753,14 +1843,12 @@ function renderNovel(name: string, data: any, story: any, concern: string): stri
         <h1 class="result-name">${safeName} さんへの<br>Grand Master's Reading</h1>
       </header>
 
-      <section class="data-section">
-        <h2 class="section-title">あなたの診断データ</h2>
-        ${safeConcern ? `<div class="concern-box">
+      ${safeConcern ? `<div class="concern-box" style="margin-bottom:24px">
           <div class="concern-label">ご相談内容</div>
           <div class="concern-text">「${safeConcern}」</div>
         </div>` : ''}
-        ${renderDataCards(data)}
-      </section>
+
+      <div id="react-data-cards-placeholder"></div>
 
       ${renderSection(story.prologue)}
       ${story.chapters ? story.chapters.map((chapter: any) => renderSection(chapter)).join('\n') : ''}
