@@ -576,7 +576,7 @@ export function calculateCompatibility(data1: FortuneResult, data2: FortuneResul
 
 // ---------- 統合計算関数 ----------
 
-export function calculateAll(y: number, m: number, d: number): FortuneResult {
+export function calculateAll(y: number, m: number, d: number, birthHour?: number, birthMinute?: number): FortuneResult {
   // マヤ暦
   let yc = MAYA_YEARS[y]
   if (yc === undefined) {
@@ -602,17 +602,32 @@ export function calculateAll(y: number, m: number, d: number): FortuneResult {
   }
   const lp = reduce(s)
 
-  // 西洋占星術（ホロスコープ — 出生時間不明のため正午JSTで計算）
-  const noonJST = new Date(Date.UTC(y, m - 1, d, 3, 0, 0)) // 12:00 JST = 3:00 UTC
-  const horoscope = calculateHoroscope(noonJST)
-  const sign = horoscope.planets[0].sign // 太陽星座
+  // 西洋占星術（ホロスコープ）
+  const hasBirthTime = birthHour !== undefined && birthMinute !== undefined
+  let horoscopeDate: Date
+  let moonCrossesSigns = false
+  let moonRangeStartSign = ''
+  let moonRangeEndSign = ''
 
-  // 月の星座確定チェック（0:00〜23:59 JSTの移動範囲）
-  const dayStartJST = new Date(Date.UTC(y, m - 1, d - 1, 15, 0, 0)) // 0:00 JST
-  const dayEndJST = new Date(Date.UTC(y, m - 1, d, 14, 59, 0))      // 23:59 JST
-  const moonStart = calculateHoroscope(dayStartJST).planets[1]
-  const moonEnd = calculateHoroscope(dayEndJST).planets[1]
-  const moonCrossesSigns = moonStart.sign !== moonEnd.sign
+  if (hasBirthTime) {
+    // 出生時間あり → 正確な時刻で計算（JST→UTC: -9時間）
+    const utcHour = birthHour - 9
+    horoscopeDate = new Date(Date.UTC(y, m - 1, d, utcHour, birthMinute, 0))
+    // 出生時間が明確なので月の星座は確定
+  } else {
+    // 出生時間なし → 正午JSTで計算 + 月の移動範囲チェック
+    horoscopeDate = new Date(Date.UTC(y, m - 1, d, 3, 0, 0)) // 12:00 JST = 3:00 UTC
+    const dayStartJST = new Date(Date.UTC(y, m - 1, d - 1, 15, 0, 0)) // 0:00 JST
+    const dayEndJST = new Date(Date.UTC(y, m - 1, d, 14, 59, 0))      // 23:59 JST
+    const moonStart = calculateHoroscope(dayStartJST).planets[1]
+    const moonEnd = calculateHoroscope(dayEndJST).planets[1]
+    moonCrossesSigns = moonStart.sign !== moonEnd.sign
+    moonRangeStartSign = moonStart.sign
+    moonRangeEndSign = moonEnd.sign
+  }
+
+  const horoscope = calculateHoroscope(horoscopeDate)
+  const sign = horoscope.planets[0].sign // 太陽星座
 
   // 天体データを抽出
   const planets = horoscope.planets.map(p => ({
@@ -642,8 +657,8 @@ export function calculateAll(y: number, m: number, d: number): FortuneResult {
     qualityBalance: horoscope.qualityBalance,
     retrograding,
     moonCrossesSigns,
-    moonRangeStart: moonStart.sign,
-    moonRangeEnd: moonEnd.sign,
+    moonRangeStart: moonRangeStartSign,
+    moonRangeEnd: moonRangeEndSign,
   }
 
   // 算命学

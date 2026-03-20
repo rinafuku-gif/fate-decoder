@@ -172,7 +172,8 @@ export default function FateDecoder() {
             const year = params.get('year') || '1990'
             const month = params.get('month') || '1'
             const day = params.get('day') || '1'
-            const data = calculateAll(parseInt(year), parseInt(month), parseInt(day))
+            const bh = params.get('birthHour'), bm = params.get('birthMinute')
+            const data = calculateAll(parseInt(year), parseInt(month), parseInt(day), bh ? parseInt(bh) : undefined, bm ? parseInt(bm) : undefined)
             const concern = params.get('concern') || ''
             setResultHtml(renderNovel(name, data, story, decodeURIComponent(concern)))
             setScreen('result')
@@ -225,7 +226,7 @@ export default function FateDecoder() {
     setScreen('loading')
 
     try {
-      const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day))
+      const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day), formData.birthHour ? parseInt(formData.birthHour) : undefined, formData.birthMinute !== '' ? parseInt(formData.birthMinute) : undefined)
       const spread = generateTarotSpread(data)
       setTarotSpread(spread)
       setTarotUserName(formData.name)
@@ -337,7 +338,7 @@ ${spread.map((s, i) => `${i + 1}. 【${s.position.label}】（${s.position.descr
     setScreen('loading')
 
     try {
-      const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day))
+      const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day), formData.birthHour ? parseInt(formData.birthHour) : undefined, formData.birthMinute !== '' ? parseInt(formData.birthMinute) : undefined)
 
       const shortPrompt = `
 あなたは鑑定実績1万人超のプロの占い師です。
@@ -456,7 +457,7 @@ ${formatWesternForPrompt(data.western)}
     }, 60000)
 
     try {
-      const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day))
+      const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day), formData.birthHour ? parseInt(formData.birthHour) : undefined, formData.birthMinute !== '' ? parseInt(formData.birthMinute) : undefined)
 
       const prompt = `
 あなたは、複数の占術データを読み解いて「その人だけの性格分析レポート」を小説形式で書くライターです。
@@ -599,7 +600,7 @@ ${formatWesternForPrompt(data.western)}
       clearTimeout(timeoutId)
       setIsSubmitting(false)
       if (e instanceof Error && e.message.includes('執筆力が本日の限界')) {
-        const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day))
+        const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day), formData.birthHour ? parseInt(formData.birthHour) : undefined, formData.birthMinute !== '' ? parseInt(formData.birthMinute) : undefined)
         setResultHtml(renderPreview(formData.name, data, formData.concern))
         setScreen('result')
         setIsProcessingInBackground(false)
@@ -747,7 +748,7 @@ ${formatWesternForPrompt(data.western)}
     setScreen('loading')
 
     try {
-      const data1 = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day))
+      const data1 = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day), formData.birthHour ? parseInt(formData.birthHour) : undefined, formData.birthMinute !== '' ? parseInt(formData.birthMinute) : undefined)
       const data2 = calculateAll(parseInt(person2.year), parseInt(person2.month), parseInt(person2.day))
       const score = calculateCompatibility(data1, data2)
 
