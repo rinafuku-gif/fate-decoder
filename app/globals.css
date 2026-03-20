@@ -633,6 +633,15 @@ textarea {
   margin-top: 32px;
   letter-spacing: 0.08em;
 }
+.credit-link {
+  color: var(--c-accent);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.credit-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
 
 /* Background processing banner */
 .bg-banner {

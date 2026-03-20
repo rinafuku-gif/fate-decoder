@@ -749,7 +749,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
               </button>
             ))}
           </div>
-          <p className="input-credit">produced by SATOYAMA AI BASE</p>
+          <p className="input-credit">produced by <a href="https://satoyama-ai-base.vercel.app" target="_blank" rel="noopener noreferrer" className="credit-link">SATOYAMA AI BASE</a></p>
         </div>
       )}
 
@@ -885,7 +885,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
             </form>
           </div>
           <p className="input-footer">マヤ暦・算命学・数秘術・西洋占星術・宿曜・四柱推命の6つの占術を用いてリーディングします。</p>
-          <p className="input-credit">produced by SATOYAMA AI BASE</p>
+          <p className="input-credit">produced by <a href="https://satoyama-ai-base.vercel.app" target="_blank" rel="noopener noreferrer" className="credit-link">SATOYAMA AI BASE</a></p>
         </div>
       )}
 
@@ -910,7 +910,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
               </button>
             ))}
           </div>
-          <p className="input-credit">produced by SATOYAMA AI BASE</p>
+          <p className="input-credit">produced by <a href="https://satoyama-ai-base.vercel.app" target="_blank" rel="noopener noreferrer" className="credit-link">SATOYAMA AI BASE</a></p>
         </div>
       )}
 
@@ -988,7 +988,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
             </form>
           </div>
           <p className="input-footer">6つの占術で2人の相性を総合的に診断します。</p>
-          <p className="input-credit">produced by SATOYAMA AI BASE</p>
+          <p className="input-credit">produced by <a href="https://satoyama-ai-base.vercel.app" target="_blank" rel="noopener noreferrer" className="credit-link">SATOYAMA AI BASE</a></p>
         </div>
       )}
 
