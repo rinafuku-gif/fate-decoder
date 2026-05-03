@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { generateStory } from './actions'
 import { fetchStoryFromNotion } from './notion-actions'
 import { calculateAll, calculateCompatibility, type CompatibilityScore, type CompatibilityType, type FortuneResult, type WesternData } from '../lib/fortune-calc'
 import { generateTarotSpread, type TarotSpreadCard } from '../lib/tarot-data'
+import { SpeechReader } from '../components/SpeechReader'
+import { htmlToPlainText, buildShortReadingText, buildCompatText, buildTarotText } from '../lib/extract-result-text'
 
 // ホロスコープデータをAIプロンプト用にフォーマット
 function formatWesternForPrompt(w: WesternData): string {
@@ -117,6 +119,12 @@ export default function FateDecoder() {
   const [isInAppBrowser, setIsInAppBrowser] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [detailModal, setDetailModal] = useState<string | null>(null) // 占術詳細モーダル
+
+  // Full Reading (HTML) を読み上げ用テキストに変換
+  const fullReadingSpeechText = useMemo(() => {
+    if (!resultHtml || screen !== 'result') return ''
+    return htmlToPlainText(resultHtml)
+  }, [resultHtml, screen])
 
   // モーダル表示時に背景スクロールを抑制
   useEffect(() => {
@@ -1164,6 +1172,8 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
             <div className="compat-header-line" />
           </header>
 
+          <SpeechReader text={buildCompatText(compatResult)} label="相性診断を聴く" />
+
           <div className="compat-score-section">
             <div className="compat-score-circle">
               <svg viewBox="0 0 120 120" className="compat-score-svg">
@@ -1366,6 +1376,13 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
           </div>
 
           {allRevealed && (
+            <SpeechReader
+              text={buildTarotText({ userName: tarotUserName, spread: tarotSpread, messages: tarotMessages, allRevealed })}
+              label="メッセージを聴く"
+            />
+          )}
+
+          {allRevealed && (
             <div className="tarot-summary">
               <div className="tarot-summary-inner">
                 <div className="tarot-summary-ornament" aria-hidden="true">&#x2726; &#x2727; &#x2726;</div>
@@ -1409,6 +1426,8 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
             <h1 className="short-title">{shortResult.name} さんの<br />Short Reading</h1>
             <div className="short-header-line" />
           </header>
+
+          <SpeechReader text={buildShortReadingText(shortResult)} label="リーディングを聴く" />
 
           <div className="short-oneword">
             <span className="short-oneword-label">あなたを一言で表すなら</span>
@@ -1559,6 +1578,9 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
       {screen === 'result' && (
         <>
           <div id="result-screen">
+            {fullReadingSpeechText && (
+              <SpeechReader text={fullReadingSpeechText} label="物語を聴く" />
+            )}
             <div dangerouslySetInnerHTML={{ __html: resultHtml.split('<div id="react-data-cards-placeholder"></div>')[0] }} />
 
             {/* React描画のインタラクティブ診断データカード */}
