@@ -39,6 +39,7 @@
     "node_modules",
     "calc-test.ts",
     "calculation-logic-extract.ts",
-    "complete-code-for-ai-review.tsx"
+    "complete-code-for-ai-review.tsx",
+    "audit-phase-a.ts"
   ]
 }
