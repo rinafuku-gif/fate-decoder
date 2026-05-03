@@ -138,16 +138,16 @@ function integrateAxis(
   const baseScore   = weightedSum / totalWeight
 
   // §5.2 一致度ボーナス（係数 0.6）
-  const nonZero = contributors.filter(c => c.score !== 0)
-  const positiveWeight = nonZero.filter(c => c.score > 0).reduce((s, c) => s + c.weight, 0)
-  const negativeWeight = nonZero.filter(c => c.score < 0).reduce((s, c) => s + c.weight, 0)
-  const nonZeroTotal   = nonZero.reduce((s, c) => s + c.weight, 0)
+  // 設計書: 同方向に振れた占術の重み合計 / 全占術の重み合計
+  // 0スコアの占術も「中立を表明している」として分母に含める
+  const positiveWeight = contributors.filter(c => c.score > 0).reduce((s, c) => s + c.weight, 0)
+  const negativeWeight = contributors.filter(c => c.score < 0).reduce((s, c) => s + c.weight, 0)
 
-  // 同方向に向いた重みの割合
+  // 同方向に向いた重みの割合（totalWeight は contributors の合計で確定済み）
   let agreement = 0.5
-  if (nonZeroTotal > 0) {
+  if (totalWeight > 0) {
     const dominantWeight = Math.max(positiveWeight, negativeWeight)
-    agreement = dominantWeight / nonZeroTotal
+    agreement = dominantWeight / totalWeight
   }
 
   const BONUS_COEFF = 0.6

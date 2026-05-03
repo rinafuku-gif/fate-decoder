@@ -64,11 +64,9 @@ function countAllStar(result: SanmeiResult, starName: string): number {
 }
 
 function getWeightedScore(result: SanmeiResult, scoreTable: Record<string, number>): number {
-  // centralStar（月令主星）に2倍の重みをつけ、他の星は1倍で集計
+  // 設計書§4.1: 十大主星への固定スコア。中心星偏向の重み付けは設計書に存在しない。
+  // allStars をそのまま 1倍重みで集計（中心星も他の星と同じ扱い）
   let score = 0
-  const centralScore = scoreTable[result.centralStar]
-  if (centralScore !== undefined) score += centralScore * 2
-
   for (const starName of Object.keys(scoreTable)) {
     const count = countAllStar(result, starName)
     score += scoreTable[starName] * count

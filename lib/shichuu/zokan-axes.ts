@@ -79,19 +79,24 @@ function hasInsho(result: ShichuuResult): boolean {
 // ---------- 軸計算 ----------
 
 /** 軸1: 判断
- * 蔵干の通変星から月令主星を参照
- * 鳳閣→+2、車騎→-2（算命学の規則に近い）
- * 設計書 §4.1 対応なし → mainStar で代理判定
+ * 全蔵干を通変星化して集計（11占術独立の原則に従い mainStar への依存を排除）
+ * スコアテーブルは §4.1 の通変星定義から導出:
+ *   食神・傷官（感情/表現）→ +2、印綬（直感/内省）→ +1、偏印 → -1
+ *   正官・偏官（論理/秩序）→ -2、正財・偏財 → -1、比肩・劫財 → 0
  */
 function calcJudgment(result: ShichuuResult): number {
-  // mainStar は四柱推命の通変星
-  const ms = result.mainStar
-  const emotionStars: Record<string, number> = {
-    '食神': 2,  '傷官': 2,  '偏印': -1,
-    '印綬': 1,  '正官': -1, '偏官': -2,
-    '比肩': 0,  '劫財': 0,  '正財': -1, '偏財': 1,
+  const JUDGMENT_SCORES: Record<string, number> = {
+    '食神': 2,  '傷官': 2,
+    '印綬': 1,
+    '偏印': -1, '正財': -1, '偏財': -1,
+    '正官': -2, '偏官': -2,
+    '比肩': 0,  '劫財': 0,
   }
-  return clamp(emotionStars[ms] ?? 0)
+  let score = 0
+  for (const [star, val] of Object.entries(JUDGMENT_SCORES)) {
+    score += val * countZokanStar(result, star)
+  }
+  return clamp(score)
 }
 
 /** 軸3: 情報の捉え方
