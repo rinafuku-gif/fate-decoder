@@ -122,15 +122,6 @@ function calcGetsumeiNumber(honmeiNumber: number, birthDate: string): number {
   // 月節入り日（固定法）—— 月の気学番号（寅月=1, 卯月=2, ... 丑月=12）を求める
   const SETSUIRI: number[] = [6, 4, 6, 5, 6, 6, 7, 8, 8, 8, 7, 7]
 
-  // 気学月番号（0-indexed）: 寅月(2月節)=0, 卯月=1, ... 丑月=11
-  // ある月mの節入り日以降なら「月m」、節入り前なら「月m-1」
-  let kyuseiMonth: number
-  if (d < SETSUIRI[m - 1]) {
-    // 節入り前 → 前の気学月
-    kyuseiMonth = ((m - 2 - 1 + 12) % 12) // 0-indexed, 前月
-  } else {
-    kyuseiMonth = (m - 1 - 1 + 12) % 12    // 0-indexed, 当月（1月始まり→寅月=2月を0番とするため -1-1）
-  }
   // 修正: 気学月は寅月(2月節)を月0として12ヶ月巡る
   // m=2, d>=4: 寅月(0), m=3, d>=6: 卯月(1), ..., m=1, d>=6: 丑月(11)
   // 上記を正しく再計算

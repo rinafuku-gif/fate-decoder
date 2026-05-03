@@ -133,11 +133,11 @@ function calcSanmeiStar(dayStemId: number, targetStemId: number): string {
  * 地支の蔵干リストを取得（本気・中気・初気すべて）
  * ZOKAN_TABLE から初気・中気・本気を抽出してSanmeiStarInfoリストを返す
  */
-function getZokanList(branch: string, daysFromSetsu: number): SanmeiStarInfo[] {
+function getZokanList(branch: string, _daysFromSetsu: number): SanmeiStarInfo[] {
   const entry = ZOKAN_TABLE[branch]
   if (!entry) return []
 
-  const [d1, z1, d2, z2, z3] = entry
+  const [_d1, z1, _d2, z2, z3] = entry
   const list: SanmeiStarInfo[] = []
 
   // 初気
@@ -151,8 +151,7 @@ function getZokanList(branch: string, daysFromSetsu: number): SanmeiStarInfo[] {
   // 本気（必ず存在）
   list.push({ branch, zokan: z3, star: '', zokanType: '本気' })
 
-  // 月令（daysFromSetsu）で主蔵干を判定（月柱の場合のみ意味を持つ）
-  void d1; void d2; void daysFromSetsu
+  // 将来 月令で主蔵干を判定する予定
   return list
 }
 

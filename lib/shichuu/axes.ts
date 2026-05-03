@@ -60,7 +60,6 @@ function calcEnergyDirection(result: ShichuuResult): number {
  */
 function calcInformationStyle(result: ShichuuResult): number {
   let score = 0
-  const intuStars = ['印綬', '偏印']
   const realStars  = ['正財', '偏財']
   const authStars  = ['正官', '偏官']
 
@@ -69,7 +68,6 @@ function calcInformationStyle(result: ShichuuResult): number {
   for (const s of realStars) score += countStar(result, s) * 2
   for (const s of authStars) score += countStar(result, s) * 1
 
-  void intuStars
   return clamp(score)
 }
 
