@@ -8,6 +8,13 @@
 // 既存の lib/horoscope-calc.ts と並行運用（Phase D で切り替え予定）
 // ========================================
 
+/**
+ * Server-side only.
+ * sweph requires Node.js native binding and does not work in browser/edge runtime.
+ * Phase D で `app/api/rashisa/route.ts` の Server Action / Route Handler から呼び出す前提。
+ * Client Component から直接 import するとビルド時にエラー。
+ */
+
 import sweph from 'sweph'
 
 // ---------- sweph 定数 ----------

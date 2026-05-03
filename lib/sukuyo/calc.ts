@@ -328,6 +328,10 @@ export function calculateSukuyo(y: number, m: number, d: number): SukuyoResult {
  *   差 ±3: 栄・親 — 発展・成長を促す好相性
  *   差 ±5 or ±4: 友・衰 — 友情、注意も必要
  *   その他: 安 — 穏やかで安定
+ *
+ * 採用流派: ±4 と ±5 の両方を友/衰として扱う独自仕様（密教宿曜暦の三九の秘法ベース、複数流派を統合）。
+ *   伝統的な三九の秘法では ±5 のみが定説、流派によっては ±13 を含める場合もある。
+ * Phase C 注: 軸5（対人距離）・軸10（他者理解）の重み調整時、本仕様の流派根拠を再評価する余地あり。
  */
 export function getSukuyoRelation(
   index1: number,
