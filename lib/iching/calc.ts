@@ -2,17 +2,14 @@
  * 易経（I Ching）計算モジュール
  *
  * 設計方針（MVP仕様）:
- * - 本命卦: Gene Keys の Life's Work ゲート番号を卦番号として流用する。
+ * - 本命卦: Gene Keys の Life's Work ゲート番号を卦番号として使用する。
  *   Gene Keys の64ゲートと易経の64卦は Rave I Ching を介して1対1対応する。
- *   Gene Keys ゲートが利用できない場合は生年月日から伝統法で算出する。
+ *   ゲート番号が指定されない場合はエラーを投げる（デタラメな結果を返さない）。
  * - 動爻: MVP では空配列（Phase C 以降の精密化で実装）
  *
- * 伝統法（Gene Keys ゲートなしの場合）:
- * - 上卦（外卦）: 生年 + 月 + 日の和を8で割った余り（1〜8）
- * - 下卦（内卦）: (生年 + 月 + 日 + 時) の和を8で割った余り（時は0を使用）
- * - 卦番号: 易経64卦マッピングで上卦×下卦から卦番号を決定
- *
- * 注意: 動爻の完全実装と伝統法の精密化は Phase B 以降で対応。
+ * Phase B 以降で対応:
+ * - 生年月日からの独立計算を精密実装（sweph + 伝統法の厳密な再現）
+ * - 動爻の完全実装
  */
 
 /** 64卦のメタデータ */
@@ -107,56 +104,12 @@ const HEXAGRAM_DATA: Record<number, HexagramData> = {
 }
 
 /**
- * 三才法による卦番号の算出（Gene Keys ゲートなしの場合の伝統法）
- * 上卦・下卦をそれぞれ8卦（乾兌離震巽坎艮坤）に対応させて64卦番号を求める
- *
- * 8卦の基本:
- *   1=乾 2=兌 3=離 4=震 5=巽 6=坎 7=艮 8=坤
- *
- * 64卦番号マッピング（行=上卦 1-8、列=下卦 1-8）
- */
-const HEXAGRAM_TABLE: number[][] = [
-  // 下卦→  乾  兌  離  震  巽  坎  艮  坤
-  /* 乾（上） */ [1,  43, 14, 34, 9,  5,  26, 11],
-  /* 兌（上） */ [10, 58, 38, 54, 61, 60, 41, 19],
-  /* 離（上） */ [13, 49, 30, 55, 37, 63, 22, 36],
-  /* 震（上） */ [25, 17, 21, 51, 42, 3,  27, 24],
-  /* 巽（上） */ [44, 28, 50, 32, 57, 48, 18, 46],
-  /* 坎（上） */ [6,  47, 64, 40, 59, 29, 4,  7],
-  /* 艮（上） */ [33, 31, 56, 62, 53, 39, 52, 15],
-  /* 坤（上） */ [12, 45, 35, 16, 20, 8,  23, 2],
-]
-
-/**
- * 上卦・下卦番号（1〜8）から易経の卦番号（1〜64）を求める
- */
-function getHexagramNumber(upperTrigram: number, lowerTrigram: number): number {
-  const row = upperTrigram - 1
-  const col = lowerTrigram - 1
-  return HEXAGRAM_TABLE[row][col]
-}
-
-/**
- * 生年月日から三才法で上卦・下卦を算出する
- * 上卦: (year + month + day) % 8 → 0 の場合は 8
- * 下卦: (year + month + day + 1) % 8 → 0 の場合は 8（時干支の代わりに+1）
- */
-function calcTrigramFromBirthDate(birthDate: string): { upper: number; lower: number } {
-  const [y, m, d] = birthDate.split('-').map(Number)
-  const sum = y + m + d
-  const upper = sum % 8 || 8
-  const lower = (sum + 1) % 8 || 8
-  return { upper, lower }
-}
-
-/**
  * Gene Keys ゲート番号を易経の卦番号に変換する
- * Gene Keys の64ゲートと易経64卦は Rave I Ching 経由で1対1対応する。
- * Gene Keys ゲート番号 = 易経卦番号（Rave Mandala の並び順）
  *
- * 注意: ゲート番号と卦番号は直接一致するわけではなく、
- * King Wen sequence の番号付けと対応している。
- * MVP では Gene Keys のゲート番号をそのまま卦番号として使用する。
+ * Gene Keys ゲート番号は King Wen 易経番号と一致する公式仕様。
+ * Ra Uru Hu の Rave I Ching（Human Design の基盤）において、
+ * 64ゲートは King Wen sequence の64卦に1対1で対応するよう設計されている。
+ * そのため、ゲート番号をそのまま卦番号として使用する。
  */
 function geneKeyGateToHexagram(gate: number): HexagramData {
   const data = HEXAGRAM_DATA[gate]
@@ -174,26 +127,18 @@ function geneKeyGateToHexagram(gate: number): HexagramData {
  * 易経を計算する
  *
  * @param input.birthDate 生年月日（YYYY-MM-DD）
- * @param input.geneKeyGate Gene Keys の Life's Work ゲート番号（省略可）
+ * @param input.geneKeyGate Gene Keys の Life's Work ゲート番号（必須・1〜64）
+ * @throws ゲート番号が指定されない、または範囲外の場合
  * @returns IchingResult
  */
 export function calculateIching(input: { birthDate: string; geneKeyGate?: number }): IchingResult {
-  let benKa: HexagramData
-
-  if (input.geneKeyGate !== undefined && input.geneKeyGate >= 1 && input.geneKeyGate <= 64) {
-    // Gene Keys ゲートを本命卦の番号として使用（MVP方式）
-    benKa = geneKeyGateToHexagram(input.geneKeyGate)
-  } else {
-    // 伝統法: 生年月日から三才法で卦番号を算出
-    const { upper, lower } = calcTrigramFromBirthDate(input.birthDate)
-    const hexNum = getHexagramNumber(upper, lower)
-    benKa = HEXAGRAM_DATA[hexNum] ?? {
-      number: hexNum,
-      name: `第${hexNum}卦`,
-      nature: 'stable',
-      description: '—',
-    }
+  if (input.geneKeyGate === undefined || input.geneKeyGate < 1 || input.geneKeyGate > 64) {
+    throw new Error(
+      'Gene Keys ゲート番号が必要です。Phase B 以降で伝統法による独立計算を実装予定。'
+    )
   }
+
+  const benKa = geneKeyGateToHexagram(input.geneKeyGate)
 
   return {
     benKa,

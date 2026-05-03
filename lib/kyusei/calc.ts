@@ -49,16 +49,33 @@ function digitalRoot(n: number): number {
 }
 
 /**
+ * 生年月日文字列をパースし、年・月・日を返す。
+ * 不正なフォーマットや存在しない日付の場合は例外を投げる。
+ * （例: '1989-13-32', 'abc', ''）
+ */
+function parseBirthDate(birthDate: string): { y: number; m: number; d: number } {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate)
+  if (!match) throw new Error(`Invalid birthDate format: ${birthDate} (expected YYYY-MM-DD)`)
+  const y = Number(match[1]), m = Number(match[2]), d = Number(match[3])
+  if (m < 1 || m > 12) throw new Error(`Invalid month: ${m}`)
+  if (d < 1 || d > 31) throw new Error(`Invalid day: ${d}`)
+  const daysInMonth = new Date(y, m, 0).getDate()
+  if (d > daysInMonth) throw new Error(`Invalid day ${d} for ${y}-${m}`)
+  return { y, m, d }
+}
+
+/**
  * 立春前後の判定
  * 古典法では毎年2月4日を立春の境界として扱う。
- * 2/4 生まれは前年扱いとする流派が多いため、2/4 を前年扱いにしている。
+ * 2/4 当年扱い、2/3 以前（1/1〜2/3）は前年扱い。
+ * 古典の節入りは2/4 朝が多いため 2/4=当年扱いが妥当とされる。
  * 厳密な立春時刻による補正は Phase B 以降で sweph を使って実施する。
  *
  * @returns 気学上の年（立春前なら前年扱い）
  */
 function getKyuseiYear(birthDate: string): number {
-  const [y, m, d] = birthDate.split('-').map(Number)
-  // 2/4以前（1/1〜2/3）は前年扱い
+  const { y, m, d } = parseBirthDate(birthDate)
+  // 2/3 以前（1/1〜2/3）は前年扱い、2/4 以降は当年扱い
   if (m < 2 || (m === 2 && d <= 3)) {
     return y - 1
   }
@@ -144,9 +161,12 @@ function calcGetsumeiNumber(honmeiNumber: number, birthDate: string): number {
 /**
  * 九星気学を計算する
  * @param birthDate 生年月日（YYYY-MM-DD 形式）
+ * @throws 不正フォーマット・存在しない日付の場合
  * @returns KyuseiResult
  */
 export function calculateKyusei(birthDate: string): KyuseiResult {
+  // バリデーション: 不正入力は例外で弾く（デタラメな結果を返さない）
+  parseBirthDate(birthDate)
   const kyuseiYear = getKyuseiYear(birthDate)
   const honmeiNumber = calcHonmeiNumber(kyuseiYear)
   const getsumeiNumber = calcGetsumeiNumber(honmeiNumber, birthDate)
