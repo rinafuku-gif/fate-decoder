@@ -3306,3 +3306,465 @@ textarea {
   border-color: rgba(108, 99, 255, 0.2);
   background: rgba(108, 99, 255, 0.04);
 }
+
+/* =====================================================
+ * .rashisa-* — 12軸プロファイルページ専用スタイル
+ * ===================================================== */
+
+.rashisa-page {
+  min-height: 100vh;
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-sans);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- ヘッダー ---- */
+.rashisa-header {
+  padding: 2.5rem 1rem 1.5rem;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.rashisa-header-inner {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.rashisa-back-link {
+  display: inline-block;
+  font-size: 0.8rem;
+  color: var(--c-text-sub);
+  text-decoration: none;
+  margin-bottom: 1rem;
+  transition: color 0.2s;
+}
+
+.rashisa-back-link:hover {
+  color: var(--c-accent);
+}
+
+.rashisa-title {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--c-text-bright);
+  margin: 0 0 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.rashisa-lead {
+  font-size: 0.88rem;
+  color: var(--c-text-sub);
+  line-height: 1.7;
+  margin: 0 0 0.5rem;
+}
+
+.rashisa-privacy-note {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  margin: 0;
+}
+
+/* ---- フォーム ---- */
+.rashisa-main {
+  flex: 1;
+  padding: 2rem 1rem;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.rashisa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rashisa-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rashisa-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--c-text-sub);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rashisa-required {
+  font-size: 0.72rem;
+  color: var(--c-accent);
+  background: var(--c-accent-light);
+  padding: 0.1em 0.5em;
+  border-radius: 4px;
+}
+
+.rashisa-input {
+  background: var(--c-glass);
+  border: 1px solid var(--c-glass-border);
+  border-radius: var(--radius);
+  color: var(--c-text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.rashisa-input:focus {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px var(--c-accent-glow);
+}
+
+.rashisa-input-year {
+  width: 7rem;
+  flex-shrink: 0;
+}
+
+.rashisa-select {
+  background: var(--c-glass);
+  border: 1px solid var(--c-glass-border);
+  border-radius: var(--radius);
+  color: var(--c-text);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  padding: 0.65rem 0.75rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.rashisa-select:focus {
+  border-color: var(--c-accent);
+}
+
+.rashisa-date-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.rashisa-time-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rashisa-date-sep {
+  font-size: 0.85rem;
+  color: var(--c-text-muted);
+  user-select: none;
+}
+
+.rashisa-field-note {
+  font-size: 0.76rem;
+  color: var(--c-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.rashisa-error {
+  background: rgba(232, 90, 90, 0.08);
+  border: 1px solid rgba(232, 90, 90, 0.25);
+  border-radius: var(--radius);
+  color: var(--c-error);
+  font-size: 0.85rem;
+  padding: 0.75rem 1rem;
+  line-height: 1.6;
+}
+
+.rashisa-submit-btn {
+  background: linear-gradient(135deg, var(--c-accent), var(--c-accent-dark));
+  border: none;
+  border-radius: var(--radius);
+  color: #0B0E17;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 1rem;
+  transition: opacity 0.2s, transform 0.1s;
+  width: 100%;
+}
+
+.rashisa-submit-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.rashisa-submit-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.rashisa-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- ローディング ---- */
+.rashisa-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.5rem 1rem;
+  gap: 1rem;
+}
+
+.rashisa-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--c-glass-border);
+  border-top-color: var(--c-accent);
+  border-radius: 50%;
+  animation: rashisa-spin 0.9s linear infinite;
+}
+
+@keyframes rashisa-spin {
+  to { transform: rotate(360deg); }
+}
+
+.rashisa-loading-text {
+  color: var(--c-text-sub);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.rashisa-loading-sub {
+  color: var(--c-text-muted);
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+/* ---- 結果 ---- */
+.rashisa-result {
+  flex: 1;
+  padding: 2rem 1rem;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.rashisa-result-header {
+  text-align: center;
+}
+
+.rashisa-result-title {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--c-text-bright);
+  margin: 0 0 0.6rem;
+}
+
+.rashisa-result-lead {
+  font-size: 0.85rem;
+  color: var(--c-text-sub);
+  margin: 0;
+  line-height: 1.7;
+}
+
+/* ---- 軸カード群 ---- */
+.rashisa-axes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.rashisa-axis-card {
+  background: var(--c-glass);
+  border: 1px solid var(--c-glass-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition: border-color 0.2s;
+}
+
+.rashisa-axis-card:hover {
+  border-color: var(--c-border-strong);
+}
+
+.rashisa-axis-header {
+  display: flex;
+  align-items: center;
+}
+
+.rashisa-axis-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-text-sub);
+  letter-spacing: 0.03em;
+}
+
+/* スライダーバー */
+.rashisa-axis-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.rashisa-pole {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  white-space: nowrap;
+  min-width: 3rem;
+}
+
+.rashisa-pole-left {
+  text-align: right;
+}
+
+.rashisa-pole-right {
+  text-align: left;
+}
+
+.rashisa-bar {
+  flex: 1;
+  padding: 4px 0;
+}
+
+.rashisa-bar-track {
+  position: relative;
+  height: 4px;
+  background: var(--c-border);
+  border-radius: 2px;
+}
+
+/* 中央線 */
+.rashisa-bar-track::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 8px;
+  background: var(--c-text-muted);
+  opacity: 0.4;
+}
+
+.rashisa-bar-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  background: var(--c-accent);
+  border: 2px solid var(--c-bg);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--c-accent-glow);
+  transition: left 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* 問い */
+.rashisa-axis-question {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  margin: 0;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* ---- 結果フッター ---- */
+.rashisa-result-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding-top: 0.5rem;
+  text-align: center;
+}
+
+.rashisa-disclaimer {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  margin: 0;
+  line-height: 1.7;
+  max-width: 480px;
+}
+
+.rashisa-retry-btn {
+  background: transparent;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--radius);
+  color: var(--c-text-sub);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  padding: 0.65rem 1.5rem;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.rashisa-retry-btn:hover {
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+
+/* ---- ページフッター ---- */
+.rashisa-page-footer {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  border-top: 1px solid var(--c-border);
+}
+
+.rashisa-page-footer p {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  margin: 0;
+}
+
+.rashisa-footer-link {
+  color: var(--c-text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.rashisa-footer-link:hover {
+  color: var(--c-accent);
+}
+
+/* ---- レスポンシブ（モバイルファースト補完） ---- */
+@media (min-width: 480px) {
+  .rashisa-title {
+    font-size: 2rem;
+  }
+
+  .rashisa-axis-card {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .rashisa-pole {
+    font-size: 0.82rem;
+    min-width: 4rem;
+  }
+}
+
+/* ---- mode-select フッターリンク（既存UIへの追記） ---- */
+.rashisa-entry-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.rashisa-entry-link:hover {
+  color: var(--c-accent);
+  border-color: var(--c-accent);
+}
