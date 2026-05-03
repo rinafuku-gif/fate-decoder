@@ -2570,7 +2570,7 @@ textarea {
 
 .speech-voice-select {
   flex: 1;
-  min-width: 160px;
+  min-width: 140px;
   height: 32px;
   padding: 0 8px;
   border-radius: 8px;
@@ -2579,6 +2579,31 @@ textarea {
   color: var(--c-text);
   font-size: 0.78rem;
   font-family: var(--font-sans);
+}
+
+.speech-preview-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  border: 1px solid var(--c-accent);
+  background: transparent;
+  color: var(--c-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.speech-preview-btn:hover:not(:disabled) {
+  background: var(--c-accent);
+  color: var(--c-bg);
+}
+
+.speech-preview-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .speech-reader-unsupported {

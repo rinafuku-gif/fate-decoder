@@ -36,14 +36,19 @@ const MALE_VOICE_PATTERNS = [
   /siri.*male/i, /albert/i,
 ]
 
+// Premium/Enhanced/拡張 voice は明らかに高音質なので優先
+const PREMIUM_PATTERN = /premium|enhanced|拡張|プレミアム|neural|natural/i
+
 function rankVoice(v: SpeechSynthesisVoice): number {
   const isJa = v.lang.toLowerCase().startsWith('ja')
   if (!isJa) return 100
+  let base = 30
   for (let i = 0; i < FEMALE_VOICE_PATTERNS.length; i++) {
-    if (FEMALE_VOICE_PATTERNS[i].test(v.name)) return i // 0..n
+    if (FEMALE_VOICE_PATTERNS[i].test(v.name)) { base = i; break }
   }
-  if (MALE_VOICE_PATTERNS.some(r => r.test(v.name))) return 50
-  return 30
+  if (base === 30 && MALE_VOICE_PATTERNS.some(r => r.test(v.name))) base = 50
+  if (PREMIUM_PATTERN.test(v.name)) base -= 20
+  return base
 }
 
 function splitForSpeech(raw: string): string[] {
@@ -229,6 +234,24 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
     setVoice(v)
   }, [voiceList])
 
+  // 試聴：現在選択中のvoiceで短いサンプルを再生
+  const handlePreview = useCallback(() => {
+    if (!supported || !voice) return
+    cancelledRef.current = true
+    window.speechSynthesis.cancel()
+    setStatus('idle')
+    setChunkIndex(0)
+    indexRef.current = 0
+    window.setTimeout(() => {
+      cancelledRef.current = false
+      const utt = new SpeechSynthesisUtterance('こんにちは。診断結果をお読みします。')
+      utt.lang = 'ja-JP'
+      utt.rate = rateRef.current
+      utt.voice = voice
+      window.speechSynthesis.speak(utt)
+    }, 100)
+  }, [supported, voice])
+
   if (!supported) {
     return (
       <div className="speech-reader speech-reader-unsupported">
@@ -321,6 +344,16 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                onClick={handlePreview}
+                className="speech-preview-btn"
+                aria-label="試聴"
+                title="この声で試聴"
+                disabled={!voice}
+              >
+                ♪ 試聴
+              </button>
             </div>
           )}
           {iosMode && (status === 'playing' || status === 'paused') && (
