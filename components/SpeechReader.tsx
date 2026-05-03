@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { preprocessForSpeech } from '../lib/speech-text-preprocess'
 
 type Status = 'idle' | 'playing' | 'paused'
 const RATES = [0.85, 1.0, 1.15, 1.3, 1.5] as const
@@ -18,8 +19,29 @@ const isIOS = (): boolean => {
   return /iPad|iPhone|iPod/.test(ua) || iPadOS
 }
 
+// 明るめ女性voice（OS横断）。先頭ほど優先
+const FEMALE_VOICE_PATTERNS = [
+  /sayaka/i, /sakura/i, /haruka/i, /ayumi/i, /kyoko/i, /otome/i,
+  /o-ren/i, /oren/i, /eloquence.*susan/i, /^female/i, /女性/,
+  /siri.*female/i, /google.*日本語/i, /google.*ja/i,
+]
+const MALE_VOICE_PATTERNS = [
+  /otoya/i, /hattori/i, /eddy/i, /ichiro/i, /^male/i, /男性/,
+  /siri.*male/i, /reed/i, /albert/i,
+]
+
+function rankVoice(v: SpeechSynthesisVoice): number {
+  const isJa = v.lang.toLowerCase().startsWith('ja')
+  if (!isJa) return 100
+  for (let i = 0; i < FEMALE_VOICE_PATTERNS.length; i++) {
+    if (FEMALE_VOICE_PATTERNS[i].test(v.name)) return i // 0..n
+  }
+  if (MALE_VOICE_PATTERNS.some(r => r.test(v.name))) return 50
+  return 30
+}
+
 function splitForSpeech(raw: string): string[] {
-  const cleaned = raw.replace(/[\s　]+/g, ' ').trim()
+  const cleaned = preprocessForSpeech(raw).replace(/[\s　]+/g, ' ').trim()
   if (!cleaned) return []
 
   const sentences = cleaned
@@ -83,10 +105,10 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
     const loadVoices = () => {
       const list = window.speechSynthesis.getVoices()
       if (list.length === 0) return
-      const ja = list.filter(v => v.lang.toLowerCase().startsWith('ja'))
-      const merged = ja.length > 0 ? [...ja, ...list.filter(v => !ja.includes(v))] : list
-      setVoiceList(merged)
-      setVoice(prev => prev ?? merged[0] ?? null)
+      // 明るめ女性 → その他日本語 → 男性 → 非日本語 の順にソート
+      const sorted = list.slice().sort((a, b) => rankVoice(a) - rankVoice(b))
+      setVoiceList(sorted)
+      setVoice(prev => prev ?? sorted[0] ?? null)
     }
     loadVoices()
     window.speechSynthesis.onvoiceschanged = loadVoices
