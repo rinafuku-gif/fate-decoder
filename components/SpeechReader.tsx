@@ -20,14 +20,20 @@ const isIOS = (): boolean => {
 }
 
 // 明るめ女性voice（OS横断）。先頭ほど優先
+// iOS17+ の Character voices（Sandy/Shelley/Flo）はナチュラルで明るめ
 const FEMALE_VOICE_PATTERNS = [
-  /sayaka/i, /sakura/i, /haruka/i, /ayumi/i, /kyoko/i, /otome/i,
-  /o-ren/i, /oren/i, /eloquence.*susan/i, /^female/i, /女性/,
+  /sayaka/i, /sakura/i, /haruka/i, /ayumi/i, // Windows系
+  /sandy/i, /shelley/i, /flo/i,              // iOS Character (明るめ)
+  /kyoko/i, /otome/i,                        // macOS/iOS 標準
+  /o-ren/i, /oren/i, /eloquence.*susan/i,
+  /^female/i, /女性/,
   /siri.*female/i, /google.*日本語/i, /google.*ja/i,
 ]
 const MALE_VOICE_PATTERNS = [
-  /otoya/i, /hattori/i, /eddy/i, /ichiro/i, /^male/i, /男性/,
-  /siri.*male/i, /reed/i, /albert/i,
+  /otoya/i, /hattori/i, /eddy/i, /ichiro/i, /reed/i, /rocko/i,
+  /grandpa/i, /grandma/i,
+  /^male/i, /男性/,
+  /siri.*male/i, /albert/i,
 ]
 
 function rankVoice(v: SpeechSynthesisVoice): number {
