@@ -12,8 +12,61 @@
 
 export const runtime = 'nodejs'
 
-import { NextRequest, NextResponse } from 'next/server'
+// クライアントバンドルへの型外漏洩防止のため必ず import type 限定
 import type { ChartInput } from '@/lib/rashisa/types'
+import { NextRequest, NextResponse } from 'next/server'
+
+// ---------- レート制限（インメモリ Map） ----------
+// サーバーレス環境ではインスタンス間で共有されないが、
+// 単一インスタンス内での急激なリクエストを防ぐ防御として十分
+
+interface RateLimitEntry {
+  count: number
+  resetAt: number
+}
+
+const rateLimitMap = new Map<string, RateLimitEntry>()
+const RATE_LIMIT_MAX = 10
+const RATE_LIMIT_WINDOW_MS = 60 * 1000  // 1分
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(ip)
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+    return true  // 許可
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return false  // 超過
+  }
+
+  entry.count += 1
+  return true  // 許可
+}
+
+function getClientIp(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown'
+  )
+}
+
+// ---------- Origin 制限 ----------
+// 環境変数 ALLOWED_ORIGINS（カンマ区切り）に含まれる Origin のみ許可
+// 空 or 未設定なら全許可（開発環境用）
+
+function checkOrigin(request: NextRequest): boolean {
+  const allowedEnv = process.env.ALLOWED_ORIGINS
+  if (!allowedEnv || allowedEnv.trim() === '') {
+    return true  // 未設定 → 全許可
+  }
+  const allowed = allowedEnv.split(',').map(s => s.trim()).filter(Boolean)
+  const origin = request.headers.get('origin') ?? ''
+  return allowed.includes(origin)
+}
 
 // ---------- バリデーション ----------
 
@@ -45,6 +98,26 @@ function isValidLongitude(v: number): boolean {
 
 export async function POST(request: NextRequest) {
   try {
+    // Origin 制限チェック
+    if (!checkOrigin(request)) {
+      return NextResponse.json(
+        { error: 'アクセスが拒否されました。' },
+        { status: 403 }
+      )
+    }
+
+    // レート制限チェック
+    const ip = getClientIp(request)
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json(
+        { error: 'リクエストが多すぎます。しばらく経ってから再度お試しください。' },
+        {
+          status: 429,
+          headers: { 'Retry-After': '60' },
+        }
+      )
+    }
+
     const body = await request.json() as Partial<ChartInput>
 
     // 必須フィールド検証

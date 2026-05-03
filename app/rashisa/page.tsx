@@ -45,12 +45,8 @@ const CITY_COORDS: Record<string, { latitude: number; longitude: number }> = {
 
 function resolveCity(city: string): { latitude: number; longitude: number } | null {
   const trimmed = city.trim()
-  // 完全一致
+  // 完全一致のみ（部分一致は「西東京」→「東京」のような誤マッチを生む）
   if (CITY_COORDS[trimmed]) return CITY_COORDS[trimmed]
-  // 部分一致（前方）
-  for (const key of Object.keys(CITY_COORDS)) {
-    if (trimmed.includes(key) || key.includes(trimmed)) return CITY_COORDS[key]
-  }
   return null
 }
 
@@ -99,10 +95,10 @@ export default function RashisaPage() {
     setError(null)
     setProfile(null)
 
-    // 出生地解決
+    // 出生地解決（完全一致のみ）
     const coords = resolveCity(form.birthPlace)
     if (!coords) {
-      setError(`「${form.birthPlace}」は対応していません。東京・大阪・名古屋などの主要都市名をお試しください。`)
+      setError(`「${form.birthPlace}」は対応していません。入力欄の一覧から選択してください。`)
       return
     }
 
@@ -188,7 +184,8 @@ export default function RashisaPage() {
                   type="number"
                   placeholder="1990"
                   min="1900"
-                  max="2050"
+                  max="2100"
+                  pattern="\d{4}"
                   value={form.birthYear}
                   onChange={e => setForm({ ...form, birthYear: e.target.value })}
                   required
@@ -243,7 +240,7 @@ export default function RashisaPage() {
                 </select>
                 <span className="rashisa-date-sep">分</span>
               </div>
-              <p className="rashisa-field-note">出生時間が不明な場合は 12:00 のままで構いません（精度が下がります）</p>
+              <p className="rashisa-field-note">出生時間が不明な場合は 12:00 のままで構いません（目安として中央値で計算します）</p>
             </div>
 
             {/* 出生地 */}
@@ -256,12 +253,19 @@ export default function RashisaPage() {
                 id="r-place"
                 className="rashisa-input"
                 type="text"
+                list="city-options"
                 placeholder="例: 東京、大阪、福岡"
                 value={form.birthPlace}
                 onChange={e => setForm({ ...form, birthPlace: e.target.value })}
                 required
+                autoComplete="off"
               />
-              <p className="rashisa-field-note">主要都市名（漢字）で入力してください</p>
+              <datalist id="city-options">
+                {Object.keys(CITY_COORDS).map(city => (
+                  <option key={city} value={city} />
+                ))}
+              </datalist>
+              <p className="rashisa-field-note">一覧から選択するか、対応都市名を正確に入力してください</p>
             </div>
 
             {/* エラー表示 */}
@@ -285,10 +289,8 @@ export default function RashisaPage() {
           {loading && (
             <div className="rashisa-loading" aria-live="polite">
               <div className="rashisa-spinner" />
-              <p className="rashisa-loading-text">
-                複数のモデルを統合して分析中...
-              </p>
-              <p className="rashisa-loading-sub">30秒ほどかかる場合があります</p>
+              <p className="rashisa-loading-text">分析中...</p>
+              <p className="rashisa-loading-sub">少々お待ちください</p>
             </div>
           )}
         </main>
