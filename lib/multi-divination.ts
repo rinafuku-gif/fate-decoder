@@ -98,8 +98,8 @@ export async function calculateExtraDivinations(
           definitionJa: hd.definitionJa,
         }
       }
-    } catch {
-      // sweph 計算失敗時はスキップ（フォールバック）
+    } catch (e) {
+      console.error('[multi-divination/genekeys-humandesign]', e)
     }
   }
 
@@ -114,8 +114,8 @@ export async function calculateExtraDivinations(
         getsumei:       kyusei.getsumei,
         getsumeiNumber: kyusei.getsumeiNumber,
       }
-    } catch {
-      // スキップ
+    } catch (e) {
+      console.error('[multi-divination/kyusei]', e)
     }
   }
 
@@ -141,8 +141,8 @@ export async function calculateExtraDivinations(
             { name: '', birthDate: `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`, birthTime: '12:00', birthPlace: '', reportDate: '' }
           )
           geneKeyGate = chart.lifesWork.gate
-        } catch {
-          // sweph 失敗時はスキップ
+        } catch (e) {
+          console.error('[multi-divination/iching-sweph-fallback]', e)
         }
       }
 
@@ -155,8 +155,8 @@ export async function calculateExtraDivinations(
           description: iching.benKa.description,
         }
       }
-    } catch {
-      // スキップ
+    } catch (e) {
+      console.error('[multi-divination/iching]', e)
     }
   }
 
@@ -179,8 +179,8 @@ export async function calculateExtraDivinations(
         monthBranch,
         monthZokan: shichuuResult.month.zokan,
       }
-    } catch {
-      // スキップ
+    } catch (e) {
+      console.error('[multi-divination/zokan]', e)
     }
   }
 

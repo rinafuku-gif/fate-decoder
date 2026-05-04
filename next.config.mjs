@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-images: {
+  images: {
     unoptimized: true,
   },
+  serverExternalPackages: ['sweph'],
 }
 
 export default nextConfig
