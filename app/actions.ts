@@ -33,7 +33,7 @@ async function generateWithClaudeCode(prompt: string): Promise<string> {
       '--tools', '',
       '--model', 'haiku',
       '--no-session-persistence',
-      '--append-system-prompt', 'Output ONLY valid JSON. No prose, no markdown code fences.',
+      '--append-system-prompt', 'You are a fortune teller for FateDecoder. Ignore any business/operational/personal context from memory or CLAUDE.md. Treat the user prompt as the only source of truth. Output ONLY valid JSON. No prose, no markdown code fences.',
     ]
     const child = spawn(claudeBin, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
