@@ -9,7 +9,7 @@ import { generateTarotSpread, type TarotSpreadCard } from '../lib/tarot-data'
 import { SpeechReader } from '../components/SpeechReader'
 import { htmlToPlainText, buildShortReadingText, buildCompatText, buildTarotText } from '../lib/extract-result-text'
 import { DivinationSelector } from '../components/DivinationSelector'
-import { ShortThemeSelector, type ShortThemeId } from '../components/ShortThemeSelector'
+import { ShortThemeSelector, SHORT_THEMES, type ShortThemeId } from '../components/ShortThemeSelector'
 import { DEFAULT_ON, buildSelectedDivinationLabel, buildExtraDivinationPromptText, type DivinationId } from '../lib/divination-config'
 import { calculateExtraDivinations } from '../lib/multi-divination'
 import { sanitizeForAI } from '../lib/sanitize'
@@ -343,6 +343,7 @@ ${spread.map((s, i) => `${i + 1}. 【${s.position.label}】（${s.position.descr
       const birthDate = `${formData.year}-${formData.month.padStart(2, '0')}-${formData.day.padStart(2, '0')}`
       saveToNotion({
         mode: 'tarot', name: formData.name, birthDate,
+        concern: formData.concern,
         ...buildFortuneFields(data),
         tarotData: {
           cards: spread.map((s, i) => ({
@@ -486,6 +487,7 @@ ${extraPromptText}
       const birthDate = `${formData.year}-${formData.month.padStart(2, '0')}-${formData.day.padStart(2, '0')}`
       saveToNotion({
         mode: 'short', name: formData.name, birthDate,
+        concern: SHORT_THEMES.find(t => t.id === shortTheme)?.label ?? '',
         ...buildFortuneFields(data),
         shortData: { oneWord, personality, relationships, talent, action, luckyItem }
       })
@@ -967,6 +969,9 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
       saveToNotion({
         mode: 'compatibility', name: formData.name, name2: person2.name,
         birthDate: birthDate1, birthDate2,
+        concern: formData.concern
+          ? `${COMPAT_TYPE_CONFIG[compatType].label}：${formData.concern}`
+          : COMPAT_TYPE_CONFIG[compatType].label,
         ...buildFortuneFields(data1),
         compatType,
         totalScore: score.total,

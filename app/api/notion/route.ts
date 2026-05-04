@@ -367,6 +367,9 @@ export async function POST(request: NextRequest) {
       },
       '診断日時': {
         date: { start: new Date().toISOString() }
+      },
+      '相談内容': {
+        rich_text: [{ type: 'text', text: { content: data.concern || '' } }]
       }
     }
 
@@ -380,9 +383,6 @@ export async function POST(request: NextRequest) {
       }
       properties['出生地'] = {
         rich_text: [{ type: 'text', text: { content: data.birthPlace || '' } }]
-      }
-      properties['相談内容'] = {
-        rich_text: [{ type: 'text', text: { content: data.concern || '' } }]
       }
     }
 
