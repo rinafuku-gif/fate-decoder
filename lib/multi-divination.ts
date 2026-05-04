@@ -91,7 +91,7 @@ export async function calculateExtraDivinations(
           typeJa:       hd.typeJa,
           authority:    hd.authority,
           authorityJa:  hd.authorityJa,
-          strategy:     hd.strategyJa,
+          strategy:     hd.strategy,
           strategyJa:   hd.strategyJa,
           profile:      chart.hdProfile,
           definition:   hd.definition,
@@ -162,29 +162,22 @@ export async function calculateExtraDivinations(
 
   if (needsZokan) {
     try {
-      const { ZOKAN_TABLE, BRANCHES, getJulianDay } = await import('./shichuu/calc')
+      const { ZOKAN_TABLE, calculateShichuu } = await import('./shichuu/calc')
 
-      // 日支から蔵干を取得（四柱推命の日柱の地支）
-      const jd = getJulianDay(year, month, day)
-      const dayStemBranch = (Math.floor(jd + 0.5) + 49) % 60
-      const dayBranchId   = dayStemBranch % 12
-      const dayBranch     = BRANCHES[dayBranchId]
+      // calculateShichuu を使って月支・蔵干を取得（節入り補正済み）。
+      // shichuu 占術が選択されている場合でも、ここで1回だけ呼ぶ（重複してもコストは軽微）。
+      const shichuuResult = calculateShichuu(year, month, day)
 
-      // 月支（簡易: 月番号から算出。立春補正は四柱推命側で済んでいるためここでは簡易計算）
-      const MONTH_BRANCH_IDS: Record<number, number> = {
-        1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10, 11:11, 12:0
-      }
-      const monthBranchId = MONTH_BRANCH_IDS[month] ?? 0
-      const monthBranch   = BRANCHES[monthBranchId]
+      const dayBranch   = shichuuResult.day.branch
+      const monthBranch = shichuuResult.month.branch
 
       const dayZokanEntry   = ZOKAN_TABLE[dayBranch]
-      const monthZokanEntry = ZOKAN_TABLE[monthBranch]
 
       result.zokan = {
         dayBranch,
         mainZokan:  dayZokanEntry?.[4] ?? '',
         monthBranch,
-        monthZokan: monthZokanEntry?.[4] ?? '',
+        monthZokan: shichuuResult.month.zokan,
       }
     } catch {
       // スキップ

@@ -5,16 +5,16 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Fate Decoder ─ AIパーソナルリーディング',
-  description: '運命鑑定士 Grand Master が、6つの占術であなたの問いに答えます。',
+  description: '運命鑑定士 Grand Master が、複数占術の組み合わせであなたの問いに答えます。',
   openGraph: {
     title: 'Fate Decoder ─ AIパーソナルリーディング',
-    description: '運命鑑定士 Grand Master が、6つの占術であなたの問いに答えます。',
+    description: '運命鑑定士 Grand Master が、複数占術の組み合わせであなたの問いに答えます。',
     type: 'website',
   },
   twitter: {
     card: 'summary',
     title: 'Fate Decoder ─ AIパーソナルリーディング',
-    description: '運命鑑定士 Grand Master が、6つの占術であなたの問いに答えます。',
+    description: '運命鑑定士 Grand Master が、複数占術の組み合わせであなたの問いに答えます。',
   },
   icons: {
     icon: [
