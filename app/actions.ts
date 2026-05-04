@@ -25,41 +25,43 @@ async function generateWithClaudeCode(prompt: string): Promise<string> {
   const { spawn } = await import('child_process')
 
   return new Promise((resolve, reject) => {
-    // claudeバイナリのパスを解決（PATH優先、フォールバックあり）
     const claudeBin = process.env.CLAUDE_BIN_PATH || 'claude'
 
-    // --tools "" でツール呼び出しなし（テキスト生成専用）、--print で非インタラクティブ実行
-    const args = ['-p', '--output-format', 'text', '--tools', '', prompt]
+    const args = [
+      '-p',
+      '--output-format', 'text',
+      '--tools', '',
+      '--model', 'haiku',
+      '--no-session-persistence',
+      '--append-system-prompt', 'Output ONLY valid JSON. No prose, no markdown code fences.',
+    ]
     const child = spawn(claudeBin, args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      // 既存の Claude Code セッション認証を継承するため HOME を引き継ぐ
+      stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...process.env },
+      cwd: '/tmp',
     })
 
     let stdout = ''
     let stderr = ''
 
-    child.stdout.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString()
-    })
+    child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString() })
+    child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString() })
 
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString()
-    })
-
-    const timer = setTimeout(() => {
+    const sigterm = setTimeout(() => {
       child.kill('SIGTERM')
-      reject(new Error('Claude Codeの応答がタイムアウトしました（90秒）。もう一度お試しください。'))
-    }, 90000)
+    }, 115000)
+    const sigkill = setTimeout(() => {
+      child.kill('SIGKILL')
+      reject(new Error('Claude Codeの応答がタイムアウトしました（120秒）。プロンプトを短くしてお試しください。'))
+    }, 120000)
 
     child.on('close', (code: number | null) => {
-      clearTimeout(timer)
+      clearTimeout(sigterm)
+      clearTimeout(sigkill)
+      if (stderr.trim()) console.warn('[Claude Code stderr]', stderr.trim())
       if (code === 0) {
         const text = stdout.trim()
-        if (!text) {
-          reject(new Error('Claude Codeから応答がありませんでした。'))
-          return
-        }
+        if (!text) { reject(new Error('Claude Codeから応答がありませんでした。')); return }
         resolve(text)
       } else {
         reject(new Error(`Claude Code実行エラー（code: ${code}）\n${stderr.trim() || '詳細なし'}`))
@@ -67,13 +69,17 @@ async function generateWithClaudeCode(prompt: string): Promise<string> {
     })
 
     child.on('error', (err: Error) => {
-      clearTimeout(timer)
+      clearTimeout(sigterm)
+      clearTimeout(sigkill)
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         reject(new Error('claudeコマンドが見つかりません。\nClaude Codeをインストールし、claude login を実行してください。'))
       } else {
         reject(new Error(`Claude Code起動エラー: ${err.message}`))
       }
     })
+
+    child.stdin.write(prompt)
+    child.stdin.end()
   })
 }
 

@@ -4,7 +4,7 @@ Claude Code をバックエンドに使う API 課金ゼロのローカル専用
 
 ## 前提条件
 
-- Claude Code インストール済み（`claude --version` で確認）
+- Claude Code インストール済み（`claude --version` で確認。未インストールなら `npm install -g @anthropic-ai/claude-code`）
 - `claude login` でログイン済み（Anthropicサブスクリプションのセッション）
 
 ## 起動
@@ -26,4 +26,5 @@ npm run local
 
 - 本番版（app/）とは完全に独立している。Vercel デプロイには影響しない
 - 生成に 30〜90 秒かかる場合がある（Claude Code の起動オーバーヘッド）
-- Notion への結果保存はスキップされる（NOTION_API_KEY 未設定のため）
+- Notion への結果保存呼び出しは行われるがサーバ側で失敗扱いになる（診断結果の表示には影響しない）
+- DevTools コンソールに `[Notion Save Failed]` が出るが正常動作の一部
