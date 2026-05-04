@@ -8,6 +8,10 @@ import { calculateAll, calculateCompatibility, type CompatibilityScore, type Com
 import { generateTarotSpread, type TarotSpreadCard } from '../lib/tarot-data'
 import { SpeechReader } from '../components/SpeechReader'
 import { htmlToPlainText, buildShortReadingText, buildCompatText, buildTarotText } from '../lib/extract-result-text'
+import { DivinationSelector } from '../components/DivinationSelector'
+import { ShortThemeSelector, type ShortThemeId } from '../components/ShortThemeSelector'
+import { DEFAULT_ON, buildSelectedDivinationLabel, buildExtraDivinationPromptText, type DivinationId } from '../lib/divination-config'
+import { calculateExtraDivinations } from '../lib/multi-divination'
 
 // ホロスコープデータをAIプロンプト用にフォーマット
 function formatWesternForPrompt(w: WesternData): string {
@@ -56,26 +60,26 @@ export type ReadingMode = 'full' | 'tarot' | 'short' | 'compatibility'
 const MODE_CONFIG: Record<ReadingMode, { label: string; subtitle: string; description: string; available: boolean }> = {
   full: {
     label: 'Full Reading',
-    subtitle: '6占術 + AI物語',
-    description: 'マヤ暦・算命学・数秘術・西洋占星術・宿曜・四柱推命の6つの占術で、あなただけの詳細レポートをAIが執筆します。',
+    subtitle: '複数占術 + AI物語',
+    description: '複数占術の組み合わせで、あなただけの詳細レポートをAIが執筆します。使う占術を自分で選べます。',
     available: true,
   },
   tarot: {
     label: 'Tarot Reading',
     subtitle: 'タロット演出 + メッセージ',
-    description: '6占術の結果をタロットカードの演出とともにお届け。直感的に響くメッセージで、あなたの今を映し出します。',
+    description: '複数占術の組み合わせの結果をタロットカードの演出とともにお届け。直感的に響くメッセージで、あなたの今を映し出します。',
     available: true,
   },
   short: {
     label: 'Short Reading',
     subtitle: 'サクッと診断',
-    description: '3分でわかる、あなたの本質。6占術の核心だけをコンパクトにまとめた要約版リーディング。',
+    description: '3分でわかる、あなたの本質。複数占術の組み合わせの核心だけをコンパクトにまとめた要約版リーディング。',
     available: true,
   },
   compatibility: {
     label: 'Compatibility',
     subtitle: 'ふたりの相性診断',
-    description: '2人の生年月日から6占術で相性を総合診断。恋愛・ビジネス・総合の3タイプから選べます。',
+    description: '2人の生年月日から複数占術の組み合わせで相性を総合診断。恋愛・ビジネス・総合の3タイプから選べます。',
     available: true,
   },
 }
@@ -105,6 +109,8 @@ export default function FateDecoder() {
     score: CompatibilityScore; type: CompatibilityType;
     story: { attraction: string; caution: string; advice: string; loveStory?: string; businessStory?: string; friendStory?: string }
   } | null>(null)
+  const [selectedDivinations, setSelectedDivinations] = useState<DivinationId[]>([...DEFAULT_ON])
+  const [shortTheme, setShortTheme] = useState<ShortThemeId>('overall')
   const [person2, setPerson2] = useState({ name: '', year: '', month: '1', day: '1' })
   const [formData, setFormData] = useState({
     name: '', year: '', month: '1', day: '1',
@@ -237,6 +243,15 @@ export default function FateDecoder() {
 
     try {
       const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day), formData.birthHour ? parseInt(formData.birthHour) : undefined, formData.birthMinute !== '' ? parseInt(formData.birthMinute) : undefined)
+
+      // 追加占術を計算
+      const extraData = await calculateExtraDivinations(
+        parseInt(formData.year), parseInt(formData.month), parseInt(formData.day),
+        selectedDivinations
+      )
+      const extraPromptText = buildExtraDivinationPromptText(extraData, selectedDivinations)
+      const selectedLabel = buildSelectedDivinationLabel(selectedDivinations)
+
       const spread = generateTarotSpread(data)
       setTarotSpread(spread)
       setTarotUserName(formData.name)
@@ -246,19 +261,22 @@ export default function FateDecoder() {
       // AI にタロット風メッセージを生成してもらう
       const tarotPrompt = `
 あなたは20年の経験を持つ、鑑定実績1万人超の本物のタロットリーダーです。
-6つの占術データから導かれた3枚のカードについて、クライアントが「なぜ私のことがわかるんですか？」と思わず涙ぐむような、深い洞察と具体性のあるリーディングメッセージを書いてください。
+複数の占術データから導かれた3枚のカードについて、クライアントが「なぜ私のことがわかるんですか？」と思わず涙ぐむような、深い洞察と具体性のあるリーディングメッセージを書いてください。
 
 【対象者】
 ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生まれ)
 
+【今回使用した占術】
+${selectedLabel}
+
 【占術データ（リーディングの根拠として活用すること）】
-・マヤ暦: KIN${data.maya.kin} / 太陽の紋章:${data.maya.glyph} / 銀河の音:${data.maya.tone} / ウェイブスペル:${data.maya.ws}
-・算命学: 中心星[${data.bazi.weapon}]
-・四柱推命: 年柱[${data.sanmeigaku.year}] / 月柱[${data.sanmeigaku.month}] / 日柱[${data.sanmeigaku.day}] / 日干[${data.bazi.stem}]
-・数秘術: ライフパスナンバー[${data.numerology.lp}]
-・西洋占星術（10天体のホロスコープ）:
-${formatWesternForPrompt(data.western)}
-・宿曜: ${data.sukuyo}
+${selectedDivinations.includes('maya') ? `・マヤ暦: KIN${data.maya.kin} / 太陽の紋章:${data.maya.glyph} / 銀河の音:${data.maya.tone} / ウェイブスペル:${data.maya.ws}` : ''}
+${selectedDivinations.includes('sanmei') ? `・算命学: 中心星[${data.bazi.weapon}]` : ''}
+${selectedDivinations.includes('shichuu') ? `・四柱推命: 年柱[${data.sanmeigaku.year}] / 月柱[${data.sanmeigaku.month}] / 日柱[${data.sanmeigaku.day}] / 日干[${data.bazi.stem}]` : ''}
+${selectedDivinations.includes('numerology') ? `・数秘術: ライフパスナンバー[${data.numerology.lp}]` : ''}
+${selectedDivinations.includes('western') ? `・西洋占星術（10天体のホロスコープ）:\n${formatWesternForPrompt(data.western)}` : ''}
+${selectedDivinations.includes('sukuyo') ? `・宿曜: ${data.sukuyo}` : ''}
+${extraPromptText}
 
 【相談内容】
 「${formData.concern || '特になし'}」
@@ -279,7 +297,7 @@ ${spread.map((s, i) => `${i + 1}. 【${s.position.label}】（${s.position.descr
    - 第2段: そこから読み取れる、その人の「あるある」な具体的行動パターンや感覚を2〜3個描写する。例:「周囲が盛り上がっている場でも、ふと一人になりたくなる瞬間がありませんか？　本を読んだり何かを調べているとき、気づけば2〜3時間が溶けていた——そんな経験はないでしょうか」
    - 第3段: 今のこの人に向けた温かく具体的なメッセージ。相談内容があればそれに対するカードからの応答を含める
 3. 占術の専門用語は自然な文脈で噛み砕いて1〜2個使う（例:「マヤ暦でいう"赤い竜"の紋章を持つあなたは、母性的な創造力を宿しています」）
-3a. 6占術のデータを偏りなく引用する。西洋占星術のホロスコープデータは天体の星座配置やアスペクトなど豊富だが、他の占術（マヤ暦・算命学・四柱推命・数秘術・宿曜）と均等に織り交ぜること
+3a. 選択した占術のデータを偏りなく引用する。西洋占星術のホロスコープデータは天体の星座配置やアスペクトなど豊富だが、他の占術と均等に織り交ぜること
 4. 相談内容があれば、3枚すべてのメッセージがその悩みの異なる側面に光を当てる
 5. 「〜ではないでしょうか」「〜という感覚、覚えがありませんか？」など問いかけを各カードに最低1つ入れる
 6. 占い本の汎用的な表現を避け、この人のデータの組み合わせだからこそ言えることを書く
@@ -350,35 +368,57 @@ ${spread.map((s, i) => `${i + 1}. 【${s.position.label}】（${s.position.descr
     try {
       const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day), formData.birthHour ? parseInt(formData.birthHour) : undefined, formData.birthMinute !== '' ? parseInt(formData.birthMinute) : undefined)
 
+      // 追加占術を計算
+      const extraData = await calculateExtraDivinations(
+        parseInt(formData.year), parseInt(formData.month), parseInt(formData.day),
+        selectedDivinations
+      )
+      const extraPromptText = buildExtraDivinationPromptText(extraData, selectedDivinations)
+      const selectedLabel = buildSelectedDivinationLabel(selectedDivinations)
+
+      // テーマ別の執筆フォーカスを決定
+      const THEME_FOCUS: Record<ShortThemeId, string> = {
+        love:    '恋愛・パートナーシップ（恋愛パターン、求める相手像、愛情表現のクセ）',
+        career:  '仕事・キャリア（天職の方向性、職場での強み、向いている働き方）',
+        money:   'お金・豊かさ（金運の傾向、豊かさを引き寄せる方法、お金との付き合い方）',
+        health:  '健康・身体（体質の傾向、ストレスのかかりやすいパターン、整え方）',
+        family:  '家族・人間関係（対人関係の特徴、家族とのパターン、人との距離感）',
+        overall: '総合・人生全般（本質的な性格、才能、これからの方向性）',
+      }
+      const themeFocus = THEME_FOCUS[shortTheme]
+
       const shortPrompt = `
 あなたは鑑定実績1万人超のプロの占い師です。
-6つの占術データから、この人の核心を3つの視点で鋭く、しかし温かく伝えてください。
+複数の占術データから、この人の核心を3つの視点で鋭く、しかし温かく伝えてください。
 しいたけ占いのような親しみやすい文体で「あるある」な具体例を入れてください。
 
 【対象者】
 ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生まれ)
 
-【占術データ】
-・マヤ暦: KIN${data.maya.kin} / 太陽の紋章:${data.maya.glyph} / 銀河の音:${data.maya.tone} / ウェイブスペル:${data.maya.ws}
-・算命学: 中心星[${data.bazi.weapon}]
-・四柱推命: 年柱[${data.sanmeigaku.year}] / 月柱[${data.sanmeigaku.month}] / 日柱[${data.sanmeigaku.day}] / 日干[${data.bazi.stem}]
-・数秘術: ライフパスナンバー[${data.numerology.lp}]
-・西洋占星術（10天体のホロスコープ）:
-${formatWesternForPrompt(data.western)}
-・宿曜: ${data.sukuyo}
+【今回使用した占術】
+${selectedLabel}
 
-【相談内容】
-「${formData.concern || '特になし'}」
+【今回のテーマ】
+${themeFocus}
+
+【占術データ】
+${selectedDivinations.includes('maya') ? `・マヤ暦: KIN${data.maya.kin} / 太陽の紋章:${data.maya.glyph} / 銀河の音:${data.maya.tone} / ウェイブスペル:${data.maya.ws}` : ''}
+${selectedDivinations.includes('sanmei') ? `・算命学: 中心星[${data.bazi.weapon}]` : ''}
+${selectedDivinations.includes('shichuu') ? `・四柱推命: 年柱[${data.sanmeigaku.year}] / 月柱[${data.sanmeigaku.month}] / 日柱[${data.sanmeigaku.day}] / 日干[${data.bazi.stem}]` : ''}
+${selectedDivinations.includes('numerology') ? `・数秘術: ライフパスナンバー[${data.numerology.lp}]` : ''}
+${selectedDivinations.includes('western') ? `・西洋占星術（10天体のホロスコープ）:\n${formatWesternForPrompt(data.western)}` : ''}
+${selectedDivinations.includes('sukuyo') ? `・宿曜: ${data.sukuyo}` : ''}
+${extraPromptText}
 
 【執筆ルール】
-1. personality（性格の核心）: 200〜300文字。占術データを2つ以上引用し、この人の「本質的な性格」を描写。具体的な行動パターンを1〜2個入れる（例:「気づけば一人で考え込んでいた、なんてことはありませんか？」）
-2. relationships（人間関係）: 200〜300文字。恋愛・友人関係での特徴やパターン。「あるある」な場面描写を入れる
-3. talent（才能・仕事）: 200〜300文字。この人が輝ける分野と、その理由。相談内容があればここで回答を含める
+1. personality（性格の核心）: 200〜300文字。占術データを2つ以上引用し、テーマ「${themeFocus}」の観点からこの人の「本質的な性格」を描写。具体的な行動パターンを1〜2個入れる
+2. relationships（人間関係）: 200〜300文字。テーマ「${themeFocus}」に関連した人間関係のパターン。「あるある」な場面描写を入れる
+3. talent（才能・仕事）: 200〜300文字。テーマ「${themeFocus}」でこの人が輝ける方向性と具体的なアドバイス
 4. oneWord: あなたを一言で表す言葉。8〜15文字で印象的に（例:「静かな炎を宿す旅人」「愛で世界を照らす太陽」）
-5. action: 今日からできる具体的な行動。20〜40文字で（例:「朝5分だけ、窓を開けて空を見上げてみてください」）
+5. action: 今日からできる具体的な行動。テーマに関連して20〜40文字で
 6. luckyItem: ラッキーアイテム。具体的に（例:「深い青色のペン」「レモンの香りのハンドクリーム」）
 7. 各セクションに「〜ではないでしょうか」「〜という感覚、ありませんか？」のような問いかけを最低1つ
-8. 6占術のデータを偏りなく引用する。西洋占星術は天体配置データが豊富だが、他の占術と均等に織り交ぜること
+8. 選択した占術のデータを偏りなく引用する。西洋占星術は天体配置データが豊富だが、他の占術と均等に織り交ぜること
 9. **必ず純粋なJSON形式で出力**（Markdownバッククォート不要）
 
 【出力フォーマット】
@@ -414,9 +454,15 @@ ${formatWesternForPrompt(data.western)}
         oneWord = parsed.oneWord || oneWord
         luckyItem = parsed.luckyItem || luckyItem
       } catch {
-        personality = `マヤ暦で「${data.maya.glyph}」の紋章を持つあなたは、表面的には穏やかでも内面に強い意志を宿しています。ライフパスナンバー${data.numerology.lp}が示すように、自分なりの答えを見つけたいという欲求が常にあるのではないでしょうか。周囲が盛り上がっている場でも、ふと一歩引いて全体を観察してしまう——そんな瞬間に覚えはありませんか？`
-        relationships = `${data.western.sign}のあなたは、人間関係において深い絆を求める傾向があります。広く浅い付き合いよりも、本音で語り合える少数の関係を大切にするタイプ。信頼した相手にはとことん尽くす一方で、表面的な社交にはどこか疲れを感じることもあるのではないでしょうか。`
-        talent = `算命学の「${data.bazi.weapon}」を持つあなたには、物事の本質を見抜く鋭さがあります。四柱推命の日柱「${data.sanmeigaku.day}」と${data.sukuyo}の影響もあり、既存のやり方にとらわれず新しい道を切り開く力を秘めています。あなたが最も輝くのは、自分の感性を信じて行動できる環境です。`
+        const selectedHasMaya  = selectedDivinations.includes('maya')
+        const selectedHasNumerology = selectedDivinations.includes('numerology')
+        const selectedHasWestern = selectedDivinations.includes('western')
+        const selectedHasSanmei = selectedDivinations.includes('sanmei')
+        const selectedHasShichuu = selectedDivinations.includes('shichuu')
+        const selectedHasSukuyo = selectedDivinations.includes('sukuyo')
+        personality = `${selectedHasMaya ? `マヤ暦で「${data.maya.glyph}」の紋章を持つあなたは、` : ''}表面的には穏やかでも内面に強い意志を宿しています。${selectedHasNumerology ? `ライフパスナンバー${data.numerology.lp}が示すように、` : ''}自分なりの答えを見つけたいという欲求が常にあるのではないでしょうか。周囲が盛り上がっている場でも、ふと一歩引いて全体を観察してしまう——そんな瞬間に覚えはありませんか？`
+        relationships = `${selectedHasWestern ? `${data.western.sign}のあなたは、` : 'あなたは、'}人間関係において深い絆を求める傾向があります。広く浅い付き合いよりも、本音で語り合える少数の関係を大切にするタイプ。信頼した相手にはとことん尽くす一方で、表面的な社交にはどこか疲れを感じることもあるのではないでしょうか。`
+        talent = `${selectedHasSanmei ? `算命学の「${data.bazi.weapon}」を持つあなたには、物事の本質を見抜く鋭さがあります。` : 'あなたには、物事の本質を見抜く鋭さがあります。'}${selectedHasShichuu ? `四柱推命の日柱「${data.sanmeigaku.day}」と` : ''}${selectedHasSukuyo ? `${data.sukuyo}の影響もあり、` : ''}既存のやり方にとらわれず新しい道を切り開く力を秘めています。あなたが最も輝くのは、自分の感性を信じて行動できる環境です。`
       }
 
       setShortResult({ data, name: formData.name, oneWord, personality, relationships, talent, action, luckyItem })
@@ -469,6 +515,14 @@ ${formatWesternForPrompt(data.western)}
     try {
       const data = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day), formData.birthHour ? parseInt(formData.birthHour) : undefined, formData.birthMinute !== '' ? parseInt(formData.birthMinute) : undefined)
 
+      // 追加占術を計算
+      const extraData = await calculateExtraDivinations(
+        parseInt(formData.year), parseInt(formData.month), parseInt(formData.day),
+        selectedDivinations
+      )
+      const extraPromptText = buildExtraDivinationPromptText(extraData, selectedDivinations)
+      const selectedLabel = buildSelectedDivinationLabel(selectedDivinations)
+
       const prompt = `
 あなたは、複数の占術データを読み解いて「その人だけの性格分析レポート」を小説形式で書くライターです。
 しいたけ占いのような親しみやすく温かい文体で、読者に深く寄り添うトーンで書いてください。
@@ -476,14 +530,17 @@ ${formatWesternForPrompt(data.western)}
 【対象者】
 名前: ${formData.name} (${formData.year}年${formData.month}月${formData.day}日生まれ / ${formData.bloodType}型 / ${formData.birthPlace || '未入力'}出身)
 
+【今回使用した占術】
+${selectedLabel}
+
 【分析データ】
-・マヤ暦: KIN${data.maya.kin} / 太陽の紋章:${data.maya.glyph} / 銀河の音:${data.maya.tone} / ウェイブスペル:${data.maya.ws}
-・算命学: 中心星[${data.bazi.weapon}]
-・四柱推命: 年柱[${data.sanmeigaku.year}] / 月柱[${data.sanmeigaku.month}] / 日柱[${data.sanmeigaku.day}] / 日干[${data.bazi.stem}]
-・数秘術: ライフパスナンバー[${data.numerology.lp}]
-・西洋占星術（10天体のホロスコープ）:
-${formatWesternForPrompt(data.western)}
-・宿曜: ${data.sukuyo}
+${selectedDivinations.includes('maya') ? `・マヤ暦: KIN${data.maya.kin} / 太陽の紋章:${data.maya.glyph} / 銀河の音:${data.maya.tone} / ウェイブスペル:${data.maya.ws}` : ''}
+${selectedDivinations.includes('sanmei') ? `・算命学: 中心星[${data.bazi.weapon}]` : ''}
+${selectedDivinations.includes('shichuu') ? `・四柱推命: 年柱[${data.sanmeigaku.year}] / 月柱[${data.sanmeigaku.month}] / 日柱[${data.sanmeigaku.day}] / 日干[${data.bazi.stem}]` : ''}
+${selectedDivinations.includes('numerology') ? `・数秘術: ライフパスナンバー[${data.numerology.lp}]` : ''}
+${selectedDivinations.includes('western') ? `・西洋占星術（10天体のホロスコープ）:\n${formatWesternForPrompt(data.western)}` : ''}
+${selectedDivinations.includes('sukuyo') ? `・宿曜: ${data.sukuyo}` : ''}
+${extraPromptText}
 
 【相談内容】
 「${formData.concern || '特になし'}」
@@ -494,7 +551,7 @@ ${formatWesternForPrompt(data.western)}
 3. 各章は800文字以上。全体で6000文字以上書いてください。
 4. 相談内容に合わせて3〜7章を柔軟に構成してください。
 5. 抽象的な表現を避け、具体的なシーンや行動例を入れてください。
-6. 6占術のデータを偏りなく引用してください。西洋占星術のホロスコープは天体配置・アスペクト・エレメントバランスなど情報が豊富ですが、各章で異なる占術を主軸にして全体のバランスを取ること。
+6. 選択した占術のデータを偏りなく引用してください。西洋占星術のホロスコープは天体配置・アスペクト・エレメントバランスなど情報が豊富ですが、各章で異なる占術を主軸にして全体のバランスを取ること。
 7. **必ず純粋なJSON形式** で出力してください（Markdownのバッククォートは不要）。
 8. 「今日からできるアクション」はfinalのmagicフィールドにのみ書くこと。chaptersのtext内に「魔法のアクション」「おすすめのアクション」等を書かないこと（重複防止）。
 
@@ -779,31 +836,47 @@ ${formatWesternForPrompt(data.western)}
       const typeLabel = COMPAT_TYPE_CONFIG[compatType].label
       const isGeneral = compatType === 'general'
 
+      // Compatibility は既存6占術ベースのスコア計算を維持（追加占術は参照データとして追加）
+      const extraData1 = await calculateExtraDivinations(
+        parseInt(formData.year), parseInt(formData.month), parseInt(formData.day),
+        selectedDivinations
+      )
+      const extraData2 = await calculateExtraDivinations(
+        parseInt(person2.year), parseInt(person2.month), parseInt(person2.day),
+        selectedDivinations
+      )
+      const extraPromptText1 = buildExtraDivinationPromptText(extraData1, selectedDivinations)
+      const extraPromptText2 = buildExtraDivinationPromptText(extraData2, selectedDivinations)
+      const selectedLabel = buildSelectedDivinationLabel(selectedDivinations)
+
       const compatPrompt = `
 あなたは20年の経験を持つ、鑑定実績1万人超の本物の占い師です。
-2人の6占術データと相性スコアをもとに、${typeLabel}の観点で相性を読み解いてください。
+2人の占術データと相性スコアをもとに、${typeLabel}の観点で相性を読み解いてください。
 しいたけ占いのような親しみやすい文体で、「あるある」な具体例を入れてください。
+
+【今回使用した占術】
+${selectedLabel}
 
 【2人の情報】
 ■ ${formData.name}さん (${formData.year}年${formData.month}月${formData.day}日生まれ)
-・マヤ暦: KIN${data1.maya.kin} / 太陽の紋章:${data1.maya.glyph} / 銀河の音:${data1.maya.tone}
-・算命学: 中心星[${data1.bazi.weapon}]
-・四柱推命: 年柱[${data1.sanmeigaku.year}] / 月柱[${data1.sanmeigaku.month}] / 日柱[${data1.sanmeigaku.day}] / 日干[${data1.bazi.stem}]
-・数秘術: ライフパスナンバー[${data1.numerology.lp}]
-・西洋占星術（ホロスコープ）:
-${formatWesternForPrompt(data1.western)}
-・宿曜: ${data1.sukuyo}
+${selectedDivinations.includes('maya') ? `・マヤ暦: KIN${data1.maya.kin} / 太陽の紋章:${data1.maya.glyph} / 銀河の音:${data1.maya.tone}` : ''}
+${selectedDivinations.includes('sanmei') ? `・算命学: 中心星[${data1.bazi.weapon}]` : ''}
+${selectedDivinations.includes('shichuu') ? `・四柱推命: 年柱[${data1.sanmeigaku.year}] / 月柱[${data1.sanmeigaku.month}] / 日柱[${data1.sanmeigaku.day}] / 日干[${data1.bazi.stem}]` : ''}
+${selectedDivinations.includes('numerology') ? `・数秘術: ライフパスナンバー[${data1.numerology.lp}]` : ''}
+${selectedDivinations.includes('western') ? `・西洋占星術（ホロスコープ）:\n${formatWesternForPrompt(data1.western)}` : ''}
+${selectedDivinations.includes('sukuyo') ? `・宿曜: ${data1.sukuyo}` : ''}
+${extraPromptText1}
 
 ■ ${person2.name}さん (${person2.year}年${person2.month}月${person2.day}日生まれ)
-・マヤ暦: KIN${data2.maya.kin} / 太陽の紋章:${data2.maya.glyph} / 銀河の音:${data2.maya.tone}
-・算命学: 中心星[${data2.bazi.weapon}]
-・四柱推命: 年柱[${data2.sanmeigaku.year}] / 月柱[${data2.sanmeigaku.month}] / 日柱[${data2.sanmeigaku.day}] / 日干[${data2.bazi.stem}]
-・数秘術: ライフパスナンバー[${data2.numerology.lp}]
-・西洋占星術（ホロスコープ）:
-${formatWesternForPrompt(data2.western)}
-・宿曜: ${data2.sukuyo}
+${selectedDivinations.includes('maya') ? `・マヤ暦: KIN${data2.maya.kin} / 太陽の紋章:${data2.maya.glyph} / 銀河の音:${data2.maya.tone}` : ''}
+${selectedDivinations.includes('sanmei') ? `・算命学: 中心星[${data2.bazi.weapon}]` : ''}
+${selectedDivinations.includes('shichuu') ? `・四柱推命: 年柱[${data2.sanmeigaku.year}] / 月柱[${data2.sanmeigaku.month}] / 日柱[${data2.sanmeigaku.day}] / 日干[${data2.bazi.stem}]` : ''}
+${selectedDivinations.includes('numerology') ? `・数秘術: ライフパスナンバー[${data2.numerology.lp}]` : ''}
+${selectedDivinations.includes('western') ? `・西洋占星術（ホロスコープ）:\n${formatWesternForPrompt(data2.western)}` : ''}
+${selectedDivinations.includes('sukuyo') ? `・宿曜: ${data2.sukuyo}` : ''}
+${extraPromptText2}
 
-【相性スコア（6占術の総合）】
+【相性スコア（基本6占術の総合）】
 総合: ${score.total}点
 ・西洋占星術: ${score.western.score}点 - ${score.western.detail}
 ・数秘術: ${score.numerology.score}点 - ${score.numerology.detail}
@@ -823,7 +896,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
 6. friendStory（友情相性）: 300〜400文字。友人関係での相性を分析` : ''}
 7. 各セクションに「〜ではないでしょうか」「〜という感覚、ありませんか？」のような問いかけを最低1つ
 8. 占術の専門用語は噛み砕いて自然に使う
-8a. 6占術のデータを偏りなく引用すること。ホロスコープデータは豊富だが、他の占術と均等に織り交ぜること
+8a. 選択した占術のデータを偏りなく引用すること。ホロスコープデータは豊富だが、他の占術と均等に織り交ぜること
 9. **必ず純粋なJSON形式で出力**（Markdownバッククォート不要）
 
 【出力フォーマット】
@@ -935,7 +1008,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
         <div className="loading-screen">
           <div className="loading-spinner" />
           <div className="loading-text">ふたりの星を<br />読み解いています...</div>
-          <p className="loading-desc">6つの占術から相性を診断中です<br />(20〜40秒ほどかかります)</p>
+          <p className="loading-desc">複数占術の組み合わせから相性を診断中です<br />(20〜40秒ほどかかります)</p>
         </div>
       )}
 
@@ -1039,10 +1112,15 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                   <input type="text" value={formData.birthPlace} onChange={(e) => setFormData({ ...formData, birthPlace: e.target.value })} placeholder="例: 東京" />
                 </div>
               </div>
-              <div className="form-group">
-                <label>今、気になっていること・相談したいこと</label>
-                <textarea value={formData.concern} onChange={(e) => setFormData({ ...formData, concern: e.target.value })} rows={4} placeholder="例：今の仕事を続けるべきか迷っています..." />
-              </div>
+              {readingMode === 'short' ? (
+                <ShortThemeSelector selected={shortTheme} onChange={setShortTheme} />
+              ) : (
+                <div className="form-group">
+                  <label>今、気になっていること・相談したいこと</label>
+                  <textarea value={formData.concern} onChange={(e) => setFormData({ ...formData, concern: e.target.value })} rows={4} placeholder="例：今の仕事を続けるべきか迷っています..." />
+                </div>
+              )}
+              <DivinationSelector selected={selectedDivinations} onChange={setSelectedDivinations} />
               <div className="consent-group">
                 <label className="consent-label">
                   <input type="checkbox" checked={consentChecked} onChange={(e) => setConsentChecked(e.target.checked)} className="consent-checkbox" />
@@ -1052,10 +1130,10 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                   </span>
                 </label>
               </div>
-              <button type="submit" className="submit-btn" disabled={isSubmitting}>{isSubmitting ? '診断中...' : '診断する'}</button>
+              <button type="submit" className="submit-btn" disabled={isSubmitting || selectedDivinations.length === 0}>{isSubmitting ? '診断中...' : '診断する'}</button>
             </form>
           </div>
-          <p className="input-footer">マヤ暦・算命学・数秘術・西洋占星術・宿曜・四柱推命の6つの占術を用いてリーディングします。</p>
+          <p className="input-footer">複数占術の組み合わせでリーディングします。</p>
           <p className="input-credit">produced by <a href="https://satoyama-ai-base.vercel.app" target="_blank" rel="noopener noreferrer" className="credit-link">SATOYAMA AI BASE</a></p>
         </div>
       )}
@@ -1146,6 +1224,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                 </div>
               </div>
 
+              <DivinationSelector selected={selectedDivinations} onChange={setSelectedDivinations} />
               <div className="consent-group">
                 <label className="consent-label">
                   <input type="checkbox" checked={consentChecked} onChange={(e) => setConsentChecked(e.target.checked)} className="consent-checkbox" />
@@ -1155,10 +1234,10 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                   </span>
                 </label>
               </div>
-              <button type="submit" className="submit-btn" disabled={isSubmitting}>{isSubmitting ? '診断中...' : '相性を診断する'}</button>
+              <button type="submit" className="submit-btn" disabled={isSubmitting || selectedDivinations.length === 0}>{isSubmitting ? '診断中...' : '相性を診断する'}</button>
             </form>
           </div>
-          <p className="input-footer">6つの占術で2人の相性を総合的に診断します。</p>
+          <p className="input-footer">複数占術の組み合わせで2人の相性を総合的に診断します。</p>
           <p className="input-credit">produced by <a href="https://satoyama-ai-base.vercel.app" target="_blank" rel="noopener noreferrer" className="credit-link">SATOYAMA AI BASE</a></p>
         </div>
       )}
@@ -1389,7 +1468,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                 <h2 className="tarot-summary-title">3枚のカードが語るもの</h2>
                 <p className="tarot-summary-text">
                   あなたの本質、今の流れ、そして導き。<br />
-                  6つの占術が選んだ3枚のカードが、<br />
+                  複数占術の組み合わせが選んだ3枚のカードが、<br />
                   ひとつの物語としてあなたの今を映し出しています。
                 </p>
                 <div className="tarot-summary-divider" />

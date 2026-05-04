@@ -3306,3 +3306,185 @@ textarea {
   border-color: rgba(108, 99, 255, 0.2);
   background: rgba(108, 99, 255, 0.04);
 }
+
+/* ================================================
+   占術選択 UI (DivinationSelector)
+   ================================================ */
+
+.divination-selector {
+  margin: 24px 0 8px;
+  border: 1px solid var(--c-glass-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  overflow: hidden;
+}
+
+.divination-selector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--c-glass-border);
+}
+
+.divination-selector-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+}
+
+.divination-selector-toggle-all {
+  font-size: 0.72rem;
+  color: var(--c-text-sub);
+  background: none;
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.divination-selector-toggle-all:hover {
+  color: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+.divination-selector-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.divination-selector-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 2px 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--c-glass-border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.divination-selector-item:last-child {
+  border-bottom: none;
+}
+
+.divination-selector-item:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.divination-selector-item-on {
+  background: rgba(201, 168, 76, 0.04);
+}
+
+.divination-selector-checkbox {
+  grid-row: 1 / 3;
+  grid-column: 1;
+  width: 16px;
+  height: 16px;
+  align-self: center;
+  cursor: pointer;
+  accent-color: var(--c-accent);
+}
+
+.divination-selector-item-name {
+  grid-row: 1;
+  grid-column: 2;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.divination-selector-default-badge {
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: var(--c-accent);
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.divination-selector-item-desc {
+  grid-row: 2;
+  grid-column: 2;
+  font-size: 0.72rem;
+  color: var(--c-text-muted);
+  line-height: 1.4;
+}
+
+.divination-selector-error {
+  padding: 8px 16px;
+  font-size: 0.72rem;
+  color: var(--c-error);
+}
+
+/* ================================================
+   Short Reading テーマ選択 UI (ShortThemeSelector)
+   ================================================ */
+
+.short-theme-selector {
+  margin: 20px 0 8px;
+}
+
+.short-theme-selector-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  margin-bottom: 10px;
+}
+
+.short-theme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.short-theme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 1px solid var(--c-glass-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+}
+
+.short-theme-option:hover {
+  border-color: rgba(201, 168, 76, 0.3);
+  background: rgba(201, 168, 76, 0.04);
+}
+
+.short-theme-option-selected {
+  border-color: var(--c-accent) !important;
+  background: rgba(201, 168, 76, 0.08) !important;
+}
+
+.short-theme-radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.short-theme-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--c-accent);
+}
+
+.short-theme-text {
+  font-size: 0.72rem;
+  color: var(--c-text-sub);
+  text-align: center;
+  line-height: 1.3;
+}
