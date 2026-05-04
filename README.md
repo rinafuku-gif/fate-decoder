@@ -17,6 +17,19 @@ npm install
 npm run dev
 ```
 
+## ローカル版（API課金なし）
+
+Claude Code がインストール済みで `claude login` 完了している必要があります。
+
+```bash
+npm run local
+```
+
+ブラウザで http://localhost:3001 を開く。
+
+Anthropic / Gemini API キーは不要。Claude Code のサブスクリプションセッションを使って生成する。
+詳細は `local-app/README.md` を参照。
+
 ## ビルド確認
 
 ```bash

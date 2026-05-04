@@ -6,7 +6,8 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "local": "LOCAL_CLAUDE_CODE=true next dev --port 3001"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
