@@ -13,6 +13,7 @@ import { ShortThemeSelector, type ShortThemeId } from '../components/ShortThemeS
 import { DEFAULT_ON, buildSelectedDivinationLabel, buildExtraDivinationPromptText, type DivinationId } from '../lib/divination-config'
 import { calculateExtraDivinations } from '../lib/multi-divination'
 import { sanitizeForAI } from '../lib/sanitize'
+import type { ExtraDivinationData } from '../lib/divination-config'
 
 // ホロスコープデータをAIプロンプト用にフォーマット
 function formatWesternForPrompt(w: WesternData): string {
@@ -103,12 +104,15 @@ export default function FateDecoder() {
     data: any; name: string; oneWord: string;
     personality: string; relationships: string; talent: string;
     action: string; luckyItem: string;
+    extraData: ExtraDivinationData;
   } | null>(null)
   const [compatType, setCompatType] = useState<CompatibilityType>('love')
   const [compatResult, setCompatResult] = useState<{
     name1: string; name2: string; data1: FortuneResult; data2: FortuneResult;
     score: CompatibilityScore; type: CompatibilityType;
     story: { attraction: string; caution: string; advice: string; loveStory?: string; businessStory?: string; friendStory?: string }
+    extraData1: ExtraDivinationData;
+    extraData2: ExtraDivinationData;
   } | null>(null)
   const [selectedDivinations, setSelectedDivinations] = useState<DivinationId[]>([...DEFAULT_ON])
   const [shortTheme, setShortTheme] = useState<ShortThemeId>('overall')
@@ -121,6 +125,7 @@ export default function FateDecoder() {
   const [consentChecked, setConsentChecked] = useState(false)
   const [resultHtml, setResultHtml] = useState('')
   const [fullResultData, setFullResultData] = useState<FortuneResult | null>(null)
+  const [fullExtraData, setFullExtraData] = useState<ExtraDivinationData>({})
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false)
   const [isProcessingInBackground, setIsProcessingInBackground] = useState(false)
   const [isInAppBrowser, setIsInAppBrowser] = useState(false)
@@ -157,6 +162,7 @@ export default function FateDecoder() {
   }
 
   const saveToNotion = (payload: Record<string, any>) => {
+    if (process.env.NEXT_PUBLIC_LOCAL_MODE === 'true') return // ローカル版ではスキップ
     fetch('/api/notion', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -471,7 +477,7 @@ ${extraPromptText}
         talent = `${selectedHasSanmei ? `算命学の「${data.bazi.weapon}」を持つあなたには、物事の本質を見抜く鋭さがあります。` : 'あなたには、物事の本質を見抜く鋭さがあります。'}${selectedHasShichuu ? `四柱推命の日柱「${data.sanmeigaku.day}」と` : ''}${selectedHasSukuyo ? `${data.sukuyo}の影響もあり、` : ''}既存のやり方にとらわれず新しい道を切り開く力を秘めています。あなたが最も輝くのは、自分の感性を信じて行動できる環境です。`
       }
 
-      setShortResult({ data, name: formData.name, oneWord, personality, relationships, talent, action, luckyItem })
+      setShortResult({ data, name: formData.name, oneWord, personality, relationships, talent, action, luckyItem, extraData })
       setScreen('short-result')
       setIsSubmitting(false)
       setTimeout(() => window.scrollTo(0, 0), 100)
@@ -637,6 +643,7 @@ ${extraPromptText}
       if (!story.final) story.final = { tag: '#まとめ', title: 'これからのあなたへ', text: 'あなたの可能性は、あなた自身の選択で広がっていきます。', magic: '自分を信じて一歩踏み出す' }
 
       setFullResultData(data)
+      setFullExtraData(extraData)
       setResultHtml(renderNovel(formData.name, data, story, formData.concern))
 
       const params = new URLSearchParams()
@@ -661,6 +668,7 @@ ${extraPromptText}
       setScreen('result')
       setTimeout(() => window.scrollTo(0, 0), 100)
 
+      if (process.env.NEXT_PUBLIC_LOCAL_MODE === 'true') return
       fetch('/api/notion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -946,7 +954,8 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
 
       setCompatResult({
         name1: formData.name, name2: person2.name,
-        data1, data2, score, type: compatType, story
+        data1, data2, score, type: compatType, story,
+        extraData1, extraData2
       })
       setScreen('compat-result')
       setIsSubmitting(false)
@@ -1301,14 +1310,34 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
             <h2 className="compat-section-title">ふたりの診断データ</h2>
             <div className="compat-compare-grid">
               {[
-                { label: '星座', v1: compatResult.data1.western.sign, v2: compatResult.data2.western.sign },
-                { label: 'ライフパス', v1: compatResult.data1.numerology.lp, v2: compatResult.data2.numerology.lp },
-                { label: 'KIN番号', v1: String(compatResult.data1.maya.kin), v2: String(compatResult.data2.maya.kin) },
-                { label: '太陽の紋章', v1: compatResult.data1.maya.glyph, v2: compatResult.data2.maya.glyph },
-                { label: '中心星', v1: compatResult.data1.bazi.weapon, v2: compatResult.data2.bazi.weapon },
-                { label: '日柱', v1: compatResult.data1.sanmeigaku.day, v2: compatResult.data2.sanmeigaku.day },
-                { label: '年柱', v1: compatResult.data1.sanmeigaku.year, v2: compatResult.data2.sanmeigaku.year },
-                { label: '宿曜', v1: compatResult.data1.sukuyo, v2: compatResult.data2.sukuyo },
+                ...(selectedDivinations.includes('western') ? [{ label: '星座', v1: compatResult.data1.western.sign, v2: compatResult.data2.western.sign }] : []),
+                ...(selectedDivinations.includes('numerology') ? [{ label: 'ライフパス', v1: String(compatResult.data1.numerology.lp), v2: String(compatResult.data2.numerology.lp) }] : []),
+                ...(selectedDivinations.includes('maya') ? [
+                  { label: 'KIN番号', v1: String(compatResult.data1.maya.kin), v2: String(compatResult.data2.maya.kin) },
+                  { label: '太陽の紋章', v1: compatResult.data1.maya.glyph, v2: compatResult.data2.maya.glyph },
+                ] : []),
+                ...(selectedDivinations.includes('sanmei') ? [{ label: '中心星', v1: compatResult.data1.bazi.weapon, v2: compatResult.data2.bazi.weapon }] : []),
+                ...(selectedDivinations.includes('shichuu') ? [
+                  { label: '日柱', v1: compatResult.data1.sanmeigaku.day, v2: compatResult.data2.sanmeigaku.day },
+                  { label: '年柱', v1: compatResult.data1.sanmeigaku.year, v2: compatResult.data2.sanmeigaku.year },
+                ] : []),
+                ...(selectedDivinations.includes('sukuyo') ? [{ label: '宿曜', v1: compatResult.data1.sukuyo, v2: compatResult.data2.sukuyo }] : []),
+                ...(selectedDivinations.includes('genekeys') && compatResult.extraData1.genekeys && compatResult.extraData2.genekeys ? [
+                  { label: "GK Life's Work", v1: `${compatResult.extraData1.genekeys.lifesWork.gate}番`, v2: `${compatResult.extraData2.genekeys.lifesWork.gate}番` },
+                ] : []),
+                ...(selectedDivinations.includes('humandesign') && compatResult.extraData1.humandesign && compatResult.extraData2.humandesign ? [
+                  { label: 'HDタイプ', v1: compatResult.extraData1.humandesign.typeJa, v2: compatResult.extraData2.humandesign.typeJa },
+                  { label: 'HD権威', v1: compatResult.extraData1.humandesign.authorityJa, v2: compatResult.extraData2.humandesign.authorityJa },
+                ] : []),
+                ...(selectedDivinations.includes('kyusei') && compatResult.extraData1.kyusei && compatResult.extraData2.kyusei ? [
+                  { label: '本命星', v1: `${compatResult.extraData1.kyusei.honmeiNumber}（${compatResult.extraData1.kyusei.honmei}）`, v2: `${compatResult.extraData2.kyusei.honmeiNumber}（${compatResult.extraData2.kyusei.honmei}）` },
+                ] : []),
+                ...(selectedDivinations.includes('iching') && compatResult.extraData1.iching && compatResult.extraData2.iching ? [
+                  { label: '本命卦', v1: `第${compatResult.extraData1.iching.gateNumber}卦`, v2: `第${compatResult.extraData2.iching.gateNumber}卦` },
+                ] : []),
+                ...(selectedDivinations.includes('zokan') && compatResult.extraData1.zokan && compatResult.extraData2.zokan ? [
+                  { label: '蔵干（日支）', v1: `${compatResult.extraData1.zokan.dayBranch}/${compatResult.extraData1.zokan.mainZokan}`, v2: `${compatResult.extraData2.zokan.dayBranch}/${compatResult.extraData2.zokan.mainZokan}` },
+                ] : []),
               ].map((row, i) => (
                 <div key={i} className="compat-compare-row">
                   <span className="compat-compare-v1">{row.v1}</span>
@@ -1529,78 +1558,157 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
           <section className="short-data">
             <h2 className="short-section-title">あなたの診断データ</h2>
             <div className="divination-groups">
-              <div className="divination-group" onClick={() => setDetailModal('maya')}>
-                <h3 className="group-label">マヤ暦</h3>
-                <div className="group-cards">
-                  <div className="data-card"><span className="data-label">KIN{shortResult.data.maya.kin}</span><span className="data-value">{shortResult.data.maya.glyph}</span></div>
-                  <div className="data-card"><span className="data-label">WS</span><span className="data-value">{shortResult.data.maya.ws}</span></div>
-                  <div className="data-card"><span className="data-label">音</span><span className="data-value">{shortResult.data.maya.tone}</span></div>
-                </div>
-                <span className="group-tap-hint">タップで詳細 ▸</span>
-              </div>
-
-              <div className="divination-group-row">
-                <div className="divination-group divination-group-half" onClick={() => setDetailModal('numerology')}>
-                  <h3 className="group-label">数秘術</h3>
-                  <div className="group-single-value">{shortResult.data.numerology.lp}</div>
-                  <span className="group-single-sublabel">ライフパスナンバー</span>
-                  <span className="group-tap-hint">詳細 ▸</span>
-                </div>
-                <div className="divination-group divination-group-half" onClick={() => setDetailModal('sanmeigaku')}>
-                  <h3 className="group-label">算命学</h3>
-                  <div className="group-single-value">{shortResult.data.bazi.weapon}</div>
-                  <span className="group-single-sublabel">中心星</span>
-                  <span className="group-tap-hint">詳細 ▸</span>
-                </div>
-              </div>
-
-              <div className="divination-group" onClick={() => setDetailModal('shichusuimei')}>
-                <h3 className="group-label">四柱推命</h3>
-                <div className="group-cards">
-                  <div className="data-card"><span className="data-label">日柱</span><span className="data-value">{shortResult.data.sanmeigaku.day}</span></div>
-                  <div className="data-card"><span className="data-label">月柱</span><span className="data-value">{shortResult.data.sanmeigaku.month}</span></div>
-                  <div className="data-card"><span className="data-label">年柱</span><span className="data-value">{shortResult.data.sanmeigaku.year}</span></div>
-                </div>
-                <span className="group-tap-hint">タップで詳細 ▸</span>
-              </div>
-
-              <div className="divination-group" onClick={() => setDetailModal('western')}>
-                <h3 className="group-label">西洋占星術</h3>
-                <div className="western-summary">
-                  <div className="western-planets-row">
-                    {shortResult.data.western.planets
-                      .filter((p: any) => ['太陽', '月', '水星', '金星', '火星'].includes(p.name))
-                      .map((p: any) => {
-                        const isMoonUncertain = p.name === '月' && shortResult.data.western.moonCrossesSigns
-                        const moonText = isMoonUncertain
-                          ? `${shortResult.data.western.moonRangeStart.replace('座','')}/${shortResult.data.western.moonRangeEnd.replace('座','')}`
-                          : p.sign.replace('座','')
-                        return (
-                          <span key={p.name} className={`western-planet-chip ${isMoonUncertain ? 'western-planet-uncertain' : ''}`}>
-                            {{'太陽':'☉','月':'☽','水星':'☿','金星':'♀','火星':'♂'}[p.name as string]}{moonText}{p.isRetrograde ? '℞' : ''}
-                          </span>
-                        )
-                      })}
+              {selectedDivinations.includes('maya') && (
+                <div className="divination-group" onClick={() => setDetailModal('maya')}>
+                  <h3 className="group-label">マヤ暦</h3>
+                  <div className="group-cards">
+                    <div className="data-card"><span className="data-label">KIN{shortResult.data.maya.kin}</span><span className="data-value">{shortResult.data.maya.glyph}</span></div>
+                    <div className="data-card"><span className="data-label">WS</span><span className="data-value">{shortResult.data.maya.ws}</span></div>
+                    <div className="data-card"><span className="data-label">音</span><span className="data-value">{shortResult.data.maya.tone}</span></div>
                   </div>
-                  <div className="western-balance-bar">
-                    {(['火','地','風','水'] as const).map(el => {
-                      const val = shortResult.data.western.elementBalance[{火:'fire',地:'earth',風:'air',水:'water'}[el] as keyof typeof shortResult.data.western.elementBalance]
-                      return <span key={el} className={`element-pip ${val > 0 ? 'element-pip-active' : ''}`}>{el}{val}</span>
-                    })}
-                  </div>
-                  {shortResult.data.western.retrograding.length > 0 && (
-                    <div className="western-retro-note">{shortResult.data.western.retrograding.join('・')}逆行中</div>
+                  <span className="group-tap-hint">タップで詳細 ▸</span>
+                </div>
+              )}
+
+              {(selectedDivinations.includes('numerology') || selectedDivinations.includes('sanmei')) && (
+                <div className="divination-group-row">
+                  {selectedDivinations.includes('numerology') && (
+                    <div className="divination-group divination-group-half" onClick={() => setDetailModal('numerology')}>
+                      <h3 className="group-label">数秘術</h3>
+                      <div className="group-single-value">{shortResult.data.numerology.lp}</div>
+                      <span className="group-single-sublabel">ライフパスナンバー</span>
+                      <span className="group-tap-hint">詳細 ▸</span>
+                    </div>
+                  )}
+                  {selectedDivinations.includes('sanmei') && (
+                    <div className="divination-group divination-group-half" onClick={() => setDetailModal('sanmeigaku')}>
+                      <h3 className="group-label">算命学</h3>
+                      <div className="group-single-value">{shortResult.data.bazi.weapon}</div>
+                      <span className="group-single-sublabel">中心星</span>
+                      <span className="group-tap-hint">詳細 ▸</span>
+                    </div>
                   )}
                 </div>
-                <span className="group-tap-hint">タップで全天体・アスペクト詳細 ▸</span>
-              </div>
+              )}
 
-              <div className="divination-group divination-group-single" onClick={() => setDetailModal('sukuyo')}>
-                <h3 className="group-label">宿曜占星術</h3>
-                <div className="group-single-value">{shortResult.data.sukuyo}</div>
-                <span className="group-single-sublabel">東洋の星座</span>
-                <span className="group-tap-hint">詳細 ▸</span>
-              </div>
+              {selectedDivinations.includes('shichuu') && (
+                <div className="divination-group" onClick={() => setDetailModal('shichusuimei')}>
+                  <h3 className="group-label">四柱推命</h3>
+                  <div className="group-cards">
+                    <div className="data-card"><span className="data-label">日柱</span><span className="data-value">{shortResult.data.sanmeigaku.day}</span></div>
+                    <div className="data-card"><span className="data-label">月柱</span><span className="data-value">{shortResult.data.sanmeigaku.month}</span></div>
+                    <div className="data-card"><span className="data-label">年柱</span><span className="data-value">{shortResult.data.sanmeigaku.year}</span></div>
+                  </div>
+                  <span className="group-tap-hint">タップで詳細 ▸</span>
+                </div>
+              )}
+
+              {selectedDivinations.includes('western') && (
+                <div className="divination-group" onClick={() => setDetailModal('western')}>
+                  <h3 className="group-label">西洋占星術</h3>
+                  <div className="western-summary">
+                    <div className="western-planets-row">
+                      {shortResult.data.western.planets
+                        .filter((p: any) => ['太陽', '月', '水星', '金星', '火星'].includes(p.name))
+                        .map((p: any) => {
+                          const isMoonUncertain = p.name === '月' && shortResult.data.western.moonCrossesSigns
+                          const moonText = isMoonUncertain
+                            ? `${shortResult.data.western.moonRangeStart.replace('座','')}/${shortResult.data.western.moonRangeEnd.replace('座','')}`
+                            : p.sign.replace('座','')
+                          return (
+                            <span key={p.name} className={`western-planet-chip ${isMoonUncertain ? 'western-planet-uncertain' : ''}`}>
+                              {{'太陽':'☉','月':'☽','水星':'☿','金星':'♀','火星':'♂'}[p.name as string]}{moonText}{p.isRetrograde ? '℞' : ''}
+                            </span>
+                          )
+                        })}
+                    </div>
+                    <div className="western-balance-bar">
+                      {(['火','地','風','水'] as const).map(el => {
+                        const val = shortResult.data.western.elementBalance[{火:'fire',地:'earth',風:'air',水:'water'}[el] as keyof typeof shortResult.data.western.elementBalance]
+                        return <span key={el} className={`element-pip ${val > 0 ? 'element-pip-active' : ''}`}>{el}{val}</span>
+                      })}
+                    </div>
+                    {shortResult.data.western.retrograding.length > 0 && (
+                      <div className="western-retro-note">{shortResult.data.western.retrograding.join('・')}逆行中</div>
+                    )}
+                  </div>
+                  <span className="group-tap-hint">タップで全天体・アスペクト詳細 ▸</span>
+                </div>
+              )}
+
+              {selectedDivinations.includes('sukuyo') && (
+                <div className="divination-group divination-group-single" onClick={() => setDetailModal('sukuyo')}>
+                  <h3 className="group-label">宿曜占星術</h3>
+                  <div className="group-single-value">{shortResult.data.sukuyo}</div>
+                  <span className="group-single-sublabel">東洋の星座</span>
+                  <span className="group-tap-hint">詳細 ▸</span>
+                </div>
+              )}
+
+              {/* 追加5占術カード */}
+              {selectedDivinations.includes('genekeys') && shortResult.extraData.genekeys && (
+                <div className="divination-group-row">
+                  <div className="divination-group divination-group-half">
+                    <h3 className="group-label">Gene Keys</h3>
+                    <div className="group-single-value">{shortResult.extraData.genekeys.lifesWork.gate}</div>
+                    <span className="group-single-sublabel">{shortResult.extraData.genekeys.lifesWork.hexName}</span>
+                    <span className="group-tap-hint">Life&#39;s Work</span>
+                  </div>
+                  <div className="divination-group divination-group-half">
+                    <h3 className="group-label">Gene Keys</h3>
+                    <div className="group-single-value">{shortResult.extraData.genekeys.evolution.gate}</div>
+                    <span className="group-single-sublabel">{shortResult.extraData.genekeys.evolution.hexName}</span>
+                    <span className="group-tap-hint">Evolution</span>
+                  </div>
+                </div>
+              )}
+
+              {selectedDivinations.includes('humandesign') && shortResult.extraData.humandesign && (
+                <div className="divination-group">
+                  <h3 className="group-label">Human Design</h3>
+                  <div className="group-cards">
+                    <div className="data-card"><span className="data-label">タイプ</span><span className="data-value">{shortResult.extraData.humandesign.typeJa}</span></div>
+                    <div className="data-card"><span className="data-label">権威</span><span className="data-value">{shortResult.extraData.humandesign.authorityJa}</span></div>
+                    <div className="data-card"><span className="data-label">プロファイル</span><span className="data-value">{shortResult.extraData.humandesign.profile}</span></div>
+                  </div>
+                </div>
+              )}
+
+              {selectedDivinations.includes('kyusei') && shortResult.extraData.kyusei && (
+                <div className="divination-group-row">
+                  <div className="divination-group divination-group-half">
+                    <h3 className="group-label">九星気学</h3>
+                    <div className="group-single-value">{shortResult.extraData.kyusei.honmeiNumber}</div>
+                    <span className="group-single-sublabel">{shortResult.extraData.kyusei.honmei}</span>
+                    <span className="group-tap-hint">本命星</span>
+                  </div>
+                  <div className="divination-group divination-group-half">
+                    <h3 className="group-label">九星気学</h3>
+                    <div className="group-single-value">{shortResult.extraData.kyusei.getsumeiNumber}</div>
+                    <span className="group-single-sublabel">{shortResult.extraData.kyusei.getsumei}</span>
+                    <span className="group-tap-hint">月命星</span>
+                  </div>
+                </div>
+              )}
+
+              {selectedDivinations.includes('iching') && shortResult.extraData.iching && (
+                <div className="divination-group divination-group-single">
+                  <h3 className="group-label">易経</h3>
+                  <div className="group-single-value">第{shortResult.extraData.iching.gateNumber}卦</div>
+                  <span className="group-single-sublabel">{shortResult.extraData.iching.hexName}</span>
+                </div>
+              )}
+
+              {selectedDivinations.includes('zokan') && shortResult.extraData.zokan && (
+                <div className="divination-group">
+                  <h3 className="group-label">蔵干</h3>
+                  <div className="group-cards">
+                    <div className="data-card"><span className="data-label">日支</span><span className="data-value">{shortResult.extraData.zokan.dayBranch}</span></div>
+                    <div className="data-card"><span className="data-label">本気</span><span className="data-value">{shortResult.extraData.zokan.mainZokan}</span></div>
+                    <div className="data-card"><span className="data-label">月支</span><span className="data-value">{shortResult.extraData.zokan.monthBranch}</span></div>
+                  </div>
+                </div>
+              )}
             </div>
 
           </section>
@@ -1680,75 +1788,150 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
               <section className="short-data" style={{ margin: '0 auto 32px', maxWidth: 640, padding: '0 20px' }}>
                 <h2 className="short-section-title">あなたの診断データ</h2>
                 <div className="divination-groups">
-                  <div className="divination-group" onClick={() => setDetailModal('maya')}>
-                    <h3 className="group-label">マヤ暦</h3>
-                    <div className="group-cards">
-                      <div className="data-card"><span className="data-label">KIN{fullResultData.maya.kin}</span><span className="data-value">{fullResultData.maya.glyph}</span></div>
-                      <div className="data-card"><span className="data-label">WS</span><span className="data-value">{fullResultData.maya.ws}</span></div>
-                      <div className="data-card"><span className="data-label">音</span><span className="data-value">{fullResultData.maya.tone}</span></div>
-                    </div>
-                    <span className="group-tap-hint">タップで詳細 ▸</span>
-                  </div>
-                  <div className="divination-group-row">
-                    <div className="divination-group divination-group-half" onClick={() => setDetailModal('numerology')}>
-                      <h3 className="group-label">数秘術</h3>
-                      <div className="group-single-value">{fullResultData.numerology.lp}</div>
-                      <span className="group-single-sublabel">ライフパスナンバー</span>
-                      <span className="group-tap-hint">詳細 ▸</span>
-                    </div>
-                    <div className="divination-group divination-group-half" onClick={() => setDetailModal('sanmeigaku')}>
-                      <h3 className="group-label">算命学</h3>
-                      <div className="group-single-value">{fullResultData.bazi.weapon}</div>
-                      <span className="group-single-sublabel">中心星</span>
-                      <span className="group-tap-hint">詳細 ▸</span>
-                    </div>
-                  </div>
-                  <div className="divination-group" onClick={() => setDetailModal('shichusuimei')}>
-                    <h3 className="group-label">四柱推命</h3>
-                    <div className="group-cards">
-                      <div className="data-card"><span className="data-label">日柱</span><span className="data-value">{fullResultData.sanmeigaku.day}</span></div>
-                      <div className="data-card"><span className="data-label">月柱</span><span className="data-value">{fullResultData.sanmeigaku.month}</span></div>
-                      <div className="data-card"><span className="data-label">年柱</span><span className="data-value">{fullResultData.sanmeigaku.year}</span></div>
-                    </div>
-                    <span className="group-tap-hint">タップで詳細 ▸</span>
-                  </div>
-                  <div className="divination-group" onClick={() => setDetailModal('western')}>
-                    <h3 className="group-label">西洋占星術</h3>
-                    <div className="western-summary">
-                      <div className="western-planets-row">
-                        {fullResultData.western.planets
-                          .filter(p => !['正真交点', 'カイロン'].includes(p.name))
-                          .slice(0, 5)
-                          .map(p => {
-                            const isMoonUncertain = p.name === '月' && fullResultData.western.moonCrossesSigns
-                            const text = isMoonUncertain
-                              ? `${fullResultData.western.moonRangeStart.replace('座','')}/${fullResultData.western.moonRangeEnd.replace('座','')}`
-                              : p.sign.replace('座','')
-                            return (
-                              <span key={p.name} className={`western-planet-chip ${isMoonUncertain ? 'western-planet-uncertain' : ''}`}>
-                                {{'太陽':'☉','月':'☽','水星':'☿','金星':'♀','火星':'♂'}[p.name as string]}{text}{p.isRetrograde ? '℞' : ''}
-                              </span>
-                            )
-                          })}
+                  {selectedDivinations.includes('maya') && (
+                    <div className="divination-group" onClick={() => setDetailModal('maya')}>
+                      <h3 className="group-label">マヤ暦</h3>
+                      <div className="group-cards">
+                        <div className="data-card"><span className="data-label">KIN{fullResultData.maya.kin}</span><span className="data-value">{fullResultData.maya.glyph}</span></div>
+                        <div className="data-card"><span className="data-label">WS</span><span className="data-value">{fullResultData.maya.ws}</span></div>
+                        <div className="data-card"><span className="data-label">音</span><span className="data-value">{fullResultData.maya.tone}</span></div>
                       </div>
-                      <div className="western-balance-bar">
-                        {(['火','地','風','水'] as const).map(el => {
-                          const val = fullResultData.western.elementBalance[{火:'fire',地:'earth',風:'air',水:'water'}[el] as keyof typeof fullResultData.western.elementBalance]
-                          return <span key={el} className={`element-pip ${val > 0 ? 'element-pip-active' : ''}`}>{el}{val}</span>
-                        })}
-                      </div>
-                      {fullResultData.western.retrograding.length > 0 && (
-                        <div className="western-retro-note">{fullResultData.western.retrograding.join('・')}逆行中</div>
+                      <span className="group-tap-hint">タップで詳細 ▸</span>
+                    </div>
+                  )}
+                  {(selectedDivinations.includes('numerology') || selectedDivinations.includes('sanmei')) && (
+                    <div className="divination-group-row">
+                      {selectedDivinations.includes('numerology') && (
+                        <div className="divination-group divination-group-half" onClick={() => setDetailModal('numerology')}>
+                          <h3 className="group-label">数秘術</h3>
+                          <div className="group-single-value">{fullResultData.numerology.lp}</div>
+                          <span className="group-single-sublabel">ライフパスナンバー</span>
+                          <span className="group-tap-hint">詳細 ▸</span>
+                        </div>
+                      )}
+                      {selectedDivinations.includes('sanmei') && (
+                        <div className="divination-group divination-group-half" onClick={() => setDetailModal('sanmeigaku')}>
+                          <h3 className="group-label">算命学</h3>
+                          <div className="group-single-value">{fullResultData.bazi.weapon}</div>
+                          <span className="group-single-sublabel">中心星</span>
+                          <span className="group-tap-hint">詳細 ▸</span>
+                        </div>
                       )}
                     </div>
-                    <span className="group-tap-hint">タップで全天体・アスペクト詳細 ▸</span>
-                  </div>
-                  <div className="divination-group divination-group-single" onClick={() => setDetailModal('sukuyo')}>
-                    <h3 className="group-label">宿曜占星術</h3>
-                    <div className="group-single-value">{fullResultData.sukuyo}</div>
-                    <span className="group-single-sublabel">東洋の星座</span>
-                    <span className="group-tap-hint">詳細 ▸</span>
-                  </div>
+                  )}
+                  {selectedDivinations.includes('shichuu') && (
+                    <div className="divination-group" onClick={() => setDetailModal('shichusuimei')}>
+                      <h3 className="group-label">四柱推命</h3>
+                      <div className="group-cards">
+                        <div className="data-card"><span className="data-label">日柱</span><span className="data-value">{fullResultData.sanmeigaku.day}</span></div>
+                        <div className="data-card"><span className="data-label">月柱</span><span className="data-value">{fullResultData.sanmeigaku.month}</span></div>
+                        <div className="data-card"><span className="data-label">年柱</span><span className="data-value">{fullResultData.sanmeigaku.year}</span></div>
+                      </div>
+                      <span className="group-tap-hint">タップで詳細 ▸</span>
+                    </div>
+                  )}
+                  {selectedDivinations.includes('western') && (
+                    <div className="divination-group" onClick={() => setDetailModal('western')}>
+                      <h3 className="group-label">西洋占星術</h3>
+                      <div className="western-summary">
+                        <div className="western-planets-row">
+                          {fullResultData.western.planets
+                            .filter(p => !['正真交点', 'カイロン'].includes(p.name))
+                            .slice(0, 5)
+                            .map(p => {
+                              const isMoonUncertain = p.name === '月' && fullResultData.western.moonCrossesSigns
+                              const text = isMoonUncertain
+                                ? `${fullResultData.western.moonRangeStart.replace('座','')}/${fullResultData.western.moonRangeEnd.replace('座','')}`
+                                : p.sign.replace('座','')
+                              return (
+                                <span key={p.name} className={`western-planet-chip ${isMoonUncertain ? 'western-planet-uncertain' : ''}`}>
+                                  {{'太陽':'☉','月':'☽','水星':'☿','金星':'♀','火星':'♂'}[p.name as string]}{text}{p.isRetrograde ? '℞' : ''}
+                                </span>
+                              )
+                            })}
+                        </div>
+                        <div className="western-balance-bar">
+                          {(['火','地','風','水'] as const).map(el => {
+                            const val = fullResultData.western.elementBalance[{火:'fire',地:'earth',風:'air',水:'water'}[el] as keyof typeof fullResultData.western.elementBalance]
+                            return <span key={el} className={`element-pip ${val > 0 ? 'element-pip-active' : ''}`}>{el}{val}</span>
+                          })}
+                        </div>
+                        {fullResultData.western.retrograding.length > 0 && (
+                          <div className="western-retro-note">{fullResultData.western.retrograding.join('・')}逆行中</div>
+                        )}
+                      </div>
+                      <span className="group-tap-hint">タップで全天体・アスペクト詳細 ▸</span>
+                    </div>
+                  )}
+                  {selectedDivinations.includes('sukuyo') && (
+                    <div className="divination-group divination-group-single" onClick={() => setDetailModal('sukuyo')}>
+                      <h3 className="group-label">宿曜占星術</h3>
+                      <div className="group-single-value">{fullResultData.sukuyo}</div>
+                      <span className="group-single-sublabel">東洋の星座</span>
+                      <span className="group-tap-hint">詳細 ▸</span>
+                    </div>
+                  )}
+
+                  {/* 追加5占術カード */}
+                  {selectedDivinations.includes('genekeys') && fullExtraData.genekeys && (
+                    <div className="divination-group-row">
+                      <div className="divination-group divination-group-half">
+                        <h3 className="group-label">Gene Keys</h3>
+                        <div className="group-single-value">{fullExtraData.genekeys.lifesWork.gate}</div>
+                        <span className="group-single-sublabel">{fullExtraData.genekeys.lifesWork.hexName}</span>
+                        <span className="group-tap-hint">Life&#39;s Work</span>
+                      </div>
+                      <div className="divination-group divination-group-half">
+                        <h3 className="group-label">Gene Keys</h3>
+                        <div className="group-single-value">{fullExtraData.genekeys.evolution.gate}</div>
+                        <span className="group-single-sublabel">{fullExtraData.genekeys.evolution.hexName}</span>
+                        <span className="group-tap-hint">Evolution</span>
+                      </div>
+                    </div>
+                  )}
+                  {selectedDivinations.includes('humandesign') && fullExtraData.humandesign && (
+                    <div className="divination-group">
+                      <h3 className="group-label">Human Design</h3>
+                      <div className="group-cards">
+                        <div className="data-card"><span className="data-label">タイプ</span><span className="data-value">{fullExtraData.humandesign.typeJa}</span></div>
+                        <div className="data-card"><span className="data-label">権威</span><span className="data-value">{fullExtraData.humandesign.authorityJa}</span></div>
+                        <div className="data-card"><span className="data-label">プロファイル</span><span className="data-value">{fullExtraData.humandesign.profile}</span></div>
+                      </div>
+                    </div>
+                  )}
+                  {selectedDivinations.includes('kyusei') && fullExtraData.kyusei && (
+                    <div className="divination-group-row">
+                      <div className="divination-group divination-group-half">
+                        <h3 className="group-label">九星気学</h3>
+                        <div className="group-single-value">{fullExtraData.kyusei.honmeiNumber}</div>
+                        <span className="group-single-sublabel">{fullExtraData.kyusei.honmei}</span>
+                        <span className="group-tap-hint">本命星</span>
+                      </div>
+                      <div className="divination-group divination-group-half">
+                        <h3 className="group-label">九星気学</h3>
+                        <div className="group-single-value">{fullExtraData.kyusei.getsumeiNumber}</div>
+                        <span className="group-single-sublabel">{fullExtraData.kyusei.getsumei}</span>
+                        <span className="group-tap-hint">月命星</span>
+                      </div>
+                    </div>
+                  )}
+                  {selectedDivinations.includes('iching') && fullExtraData.iching && (
+                    <div className="divination-group divination-group-single">
+                      <h3 className="group-label">易経</h3>
+                      <div className="group-single-value">第{fullExtraData.iching.gateNumber}卦</div>
+                      <span className="group-single-sublabel">{fullExtraData.iching.hexName}</span>
+                    </div>
+                  )}
+                  {selectedDivinations.includes('zokan') && fullExtraData.zokan && (
+                    <div className="divination-group">
+                      <h3 className="group-label">蔵干</h3>
+                      <div className="group-cards">
+                        <div className="data-card"><span className="data-label">日支</span><span className="data-value">{fullExtraData.zokan.dayBranch}</span></div>
+                        <div className="data-card"><span className="data-label">本気</span><span className="data-value">{fullExtraData.zokan.mainZokan}</span></div>
+                        <div className="data-card"><span className="data-label">月支</span><span className="data-value">{fullExtraData.zokan.monthBranch}</span></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
             )}
