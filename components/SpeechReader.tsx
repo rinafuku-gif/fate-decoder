@@ -17,11 +17,7 @@ interface EdgeVoiceOption {
 
 const EDGE_VOICES: EdgeVoiceOption[] = [
   { id: 'ja-JP-NanamiNeural', label: 'Nanami',  description: '女性・明るく親しみやすい' },
-  { id: 'ja-JP-AoiNeural',    label: 'Aoi',     description: '女性・若く爽やか' },
-  { id: 'ja-JP-MayuNeural',   label: 'Mayu',    description: '女性・落ち着いた優しさ' },
-  { id: 'ja-JP-ShioriNeural', label: 'Shiori',  description: '女性・柔らかい' },
   { id: 'ja-JP-KeitaNeural',  label: 'Keita',   description: '男性・しっかりした印象' },
-  { id: 'ja-JP-NaokiNeural',  label: 'Naoki',   description: '男性・若く明るい' },
 ]
 
 const DEFAULT_EDGE_VOICE = 'ja-JP-NanamiNeural'
