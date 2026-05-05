@@ -307,7 +307,7 @@ ${spread.map((s, i) => `${i + 1}. 【${s.position.label}】（${s.position.descr
    - 第2段: そこから読み取れる、その人の「あるある」な具体的行動パターンや感覚を2〜3個描写する。例:「周囲が盛り上がっている場でも、ふと一人になりたくなる瞬間がありませんか？　本を読んだり何かを調べているとき、気づけば2〜3時間が溶けていた——そんな経験はないでしょうか」
    - 第3段: 今のこの人に向けた温かく具体的なメッセージ。相談内容があればそれに対するカードからの応答を含める
 3. 占術の専門用語は自然な文脈で噛み砕いて1〜2個使う（例:「マヤ暦でいう"赤い竜"の紋章を持つあなたは、母性的な創造力を宿しています」）
-3a. 選択した占術のデータを偏りなく引用する。西洋占星術のホロスコープデータは天体の星座配置やアスペクトなど豊富だが、他の占術と均等に織り交ぜること
+3a. 【最重要】選択された ${selectedDivinations.length}個すべての占術（${selectedLabel}）を、3枚のメッセージ全体で必ず最低1回ずつ占術名を明示して引用すること。1占術につき1〜2個の固有データ（KIN・卦名・ライフパス・ゲート番号など）も併記する。西洋占星術のホロスコープデータは豊富だが、それに偏らず他の占術と均等に織り交ぜること
 4. 相談内容があれば、3枚すべてのメッセージがその悩みの異なる側面に光を当てる
 5. 「〜ではないでしょうか」「〜という感覚、覚えがありませんか？」など問いかけを各カードに最低1つ入れる
 6. 占い本の汎用的な表現を避け、この人のデータの組み合わせだからこそ言えることを書く
@@ -431,7 +431,7 @@ ${extraPromptText}
 5. action: 今日からできる具体的な行動。テーマに関連して20〜40文字で
 6. luckyItem: ラッキーアイテム。具体的に（例:「深い青色のペン」「レモンの香りのハンドクリーム」）
 7. 各セクションに「〜ではないでしょうか」「〜という感覚、ありませんか？」のような問いかけを最低1つ
-8. 選択した占術のデータを偏りなく引用する。西洋占星術は天体配置データが豊富だが、他の占術と均等に織り交ぜること
+8. 【最重要】選択された ${selectedDivinations.length}個すべての占術（${selectedLabel}）を、personality / relationships / talent の3セクション全体で必ず最低1回ずつ占術名を明示して引用すること。1占術につき固有データ（KIN・卦名・ライフパス・ゲート番号など）を1個併記する。西洋占星術は情報が豊富だが、それに偏らず他の占術と均等に織り交ぜること
 9. **必ず純粋なJSON形式で出力**（Markdownバッククォート不要）
 
 【出力フォーマット】
@@ -566,10 +566,10 @@ ${extraPromptText}
 【執筆ルール】
 1. 専門用語は必ず噛み砕いて説明してください。例：「KIN93」→「KIN93（あなたの誕生日に対応するマヤ暦の番号で、魂の特性を表します）」
 2. 「〜という感覚はありませんか？」のような共感・問いかけスタイルを使ってください。
-3. 各章は800文字以上。全体で6000文字以上書いてください。
-4. 相談内容に合わせて3〜7章を柔軟に構成してください。
+3. 各章は800文字以上。全体で${Math.max(6000, 800 * (selectedDivinations.length + 1))}文字以上書いてください。
+4. 章の数は **最低 ${Math.max(3, selectedDivinations.length)} 章**（=使用した占術の数以上）構成してください。相談内容や占術のグループ化（例：四柱推命と蔵干の併読）で章を統合してもよいですが、その場合は1章で複数の占術名を**すべて明示的に**取り上げてください。
 5. 抽象的な表現を避け、具体的なシーンや行動例を入れてください。
-6. 選択した占術のデータを偏りなく引用してください。西洋占星術のホロスコープは天体配置・アスペクト・エレメントバランスなど情報が豊富ですが、各章で異なる占術を主軸にして全体のバランスを取ること。
+6. 【最重要】「今回使用した占術」に挙げた**${selectedDivinations.length}個すべて**の占術を、本文中で必ず最低1回は占術名を明示して引用してください。1つでも抜けると不完全な鑑定とみなされます。各占術の固有データ（例：マヤ暦のKIN・紋章、易経の卦名、Gene Keysのゲート番号など）も必ず併記してください。西洋占星術のホロスコープは情報が豊富ですが、それに偏らず、他の占術と均等に織り交ぜてください。
 7. **必ず純粋なJSON形式** で出力してください（Markdownのバッククォートは不要）。
 8. 「今日からできるアクション」はfinalのmagicフィールドにのみ書くこと。chaptersのtext内に「魔法のアクション」「おすすめのアクション」等を書かないこと（重複防止）。
 
@@ -723,6 +723,27 @@ ${extraPromptText}
     })
   }
 
+  const buildPdfFilename = (targetId: string): string => {
+    if (targetId === 'compat-result-screen' && compatResult) {
+      return `${compatResult.name1}×${compatResult.name2}_相性診断.pdf`
+    } else if (targetId === 'tarot-result-screen') {
+      return `${tarotUserName || formData.name || 'FateDecoder'}_タロット診断.pdf`
+    } else if (targetId === 'short-result-screen' && shortResult) {
+      return `${shortResult.name}_ショート診断.pdf`
+    } else if (shortResult && screen === 'short-result') {
+      return `${shortResult.name}_診断結果.pdf`
+    }
+    return `${formData.name || 'FateDecoder'}_診断結果.pdf`
+  }
+
+  const fallbackToBrowserPrint = (targetId: string) => {
+    const originalTitle = document.title
+    const filename = buildPdfFilename(targetId).replace(/\.pdf$/, '')
+    document.title = filename
+    window.print()
+    document.title = originalTitle
+  }
+
   const handlePrintOrDownload = async (targetId = 'result-screen') => {
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
     const isInApp = /Line|FBAV|FBAN|Instagram|Twitter|Snapchat|WeChat|WhatsApp|Telegram/i.test(ua)
@@ -735,56 +756,69 @@ ${extraPromptText}
           await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
         }
         const el = document.getElementById(targetId)
-        if (!el) return
-        const canvas = await (window as any).html2canvas(el, { scale: 2, backgroundColor: '#ffffff' })
-        const imgData = canvas.toDataURL('image/png')
+        if (!el) {
+          setIsDownloadingPDF(false)
+          return
+        }
+
+        // iOS Safari の Canvas 高さ上限（≒16384px、機種によっては 4096px）対策。
+        // 占術11個を選んで結果が長い場合、scale:2 だと簡単にこの上限を超えて
+        // toDataURL がサイレント失敗する。要素の実高さからスケールを動的に決める。
+        const elHeight = Math.max(el.scrollHeight, el.offsetHeight, el.clientHeight)
+        const MAX_CANVAS_PX = 14000
+        let scale = 2
+        if (elHeight * scale > MAX_CANVAS_PX) {
+          scale = Math.max(1, Math.min(2, MAX_CANVAS_PX / elHeight))
+        }
+
+        const canvas = await (window as any).html2canvas(el, {
+          scale,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          windowWidth: el.scrollWidth,
+        })
+
+        // PNG はモバイルで OOM しやすく、iOS では巨大DataURLでアラートが
+        // 出ないまま失敗することがある。JPEG + 圧縮で安全側に倒す。
+        const imgData = canvas.toDataURL('image/jpeg', 0.92)
+        if (!imgData || imgData === 'data:,') {
+          throw new Error('Canvasの画像化に失敗しました（サイズ上限の可能性）')
+        }
+
         const { jsPDF } = (window as any).jspdf
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true })
         const imgWidth = 210
         const pageHeight = 297
         const imgHeight = (canvas.height * imgWidth) / canvas.width
         let heightLeft = imgHeight
         let position = 0
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
         heightLeft -= pageHeight
         while (heightLeft >= 0) {
           position = heightLeft - imgHeight
           pdf.addPage()
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
           heightLeft -= pageHeight
         }
-        let filename: string
-        if (targetId === 'compat-result-screen' && compatResult) {
-          filename = `${compatResult.name1}×${compatResult.name2}_相性診断.pdf`
-        } else if (targetId === 'tarot-result-screen') {
-          filename = `${tarotUserName || formData.name || 'FateDecoder'}_タロット診断.pdf`
-        } else if (targetId === 'short-result-screen' && shortResult) {
-          filename = `${shortResult.name}_ショート診断.pdf`
-        } else if (shortResult && screen === 'short-result') {
-          filename = `${shortResult.name}_診断結果.pdf`
-        } else {
-          filename = `${formData.name || 'FateDecoder'}_診断結果.pdf`
+        pdf.save(buildPdfFilename(targetId))
+        setIsDownloadingPDF(false)
+      } catch (err) {
+        console.error('[PDF生成エラー]', err)
+        setIsDownloadingPDF(false)
+        // 失敗時はブラウザ印刷へフォールバック（iOSはここから「PDFとして保存」が可能）
+        try {
+          fallbackToBrowserPrint(targetId)
+        } catch (printErr) {
+          console.error('[印刷フォールバックエラー]', printErr)
+          const detail = err instanceof Error ? err.message : ''
+          alert(`PDF保存に失敗しました。${detail ? `\n（${detail}）` : ''}\n\nブラウザの印刷機能 (Ctrl+P / Cmd+P) から「PDFとして保存」をお試しください。`)
         }
-        pdf.save(filename)
-        setIsDownloadingPDF(false)
-      } catch {
-        setIsDownloadingPDF(false)
-        alert('PDF保存に失敗しました。\n\nブラウザの印刷機能 (Ctrl+P / Cmd+P) から「PDFとして保存」をお試しください。')
       }
     } else {
       // ブラウザ印刷: titleを変更してファイル名に反映
-      const originalTitle = document.title
-      if (targetId === 'compat-result-screen' && compatResult) {
-        document.title = `${compatResult.name1}×${compatResult.name2}_相性診断`
-      } else if (targetId === 'tarot-result-screen') {
-        document.title = `${tarotUserName || formData.name || 'FateDecoder'}_タロット診断`
-      } else if (targetId === 'short-result-screen' && shortResult) {
-        document.title = `${shortResult.name}_ショート診断`
-      } else {
-        document.title = `${formData.name || 'FateDecoder'}_診断結果`
-      }
-      window.print()
-      document.title = originalTitle
+      fallbackToBrowserPrint(targetId)
     }
   }
 
@@ -921,7 +955,7 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
 6. friendStory（友情相性）: 300〜400文字。友人関係での相性を分析` : ''}
 7. 各セクションに「〜ではないでしょうか」「〜という感覚、ありませんか？」のような問いかけを最低1つ
 8. 占術の専門用語は噛み砕いて自然に使う
-8a. 選択した占術のデータを偏りなく引用すること。ホロスコープデータは豊富だが、他の占術と均等に織り交ぜること
+8a. 【最重要】選択された ${selectedDivinations.length}個すべての占術（${selectedLabel}）を、本文全体で必ず最低1回ずつ占術名を明示して引用すること。1占術につき固有データ（KIN・卦名・ライフパス・ゲート番号など）を最低1個併記する。ホロスコープデータは豊富だが、それに偏らず他の占術と均等に織り交ぜること
 9. **必ず純粋なJSON形式で出力**（Markdownバッククォート不要）
 
 【出力フォーマット】
