@@ -31,19 +31,19 @@ export const DEFAULT_ON: DivinationId[] = ['western', 'shichuu', 'sanmei', 'nume
 // 追加5占術（デフォルト OFF）
 export const EXTRA_DIVINATIONS: DivinationId[] = ['genekeys', 'humandesign', 'kyusei', 'iching', 'zokan']
 
-// 占術の日本語名 + 説明文（UI 表示用）
-export const DIVINATION_META: Record<DivinationId, { name: string; description: string }> = {
-  western:     { name: '西洋占星術',   description: '天体配置から本質と人生のテーマを読み解く' },
-  shichuu:     { name: '四柱推命',     description: '天干地支から性格と運命の傾向を見る' },
-  sanmei:      { name: '算命学',       description: '十大主星と人体星図から性質と人生プログラムを読む' },
-  numerology:  { name: '数秘術',       description: '数字に込められた意味からライフパスと運命数を導く' },
-  sukuyo:      { name: '宿曜占星術',   description: '月の運行に基づく27宿から気質を見る' },
-  maya:        { name: 'マヤ暦',       description: '銀河の音と太陽の紋章から魂の役割と才能を読む' },
-  genekeys:    { name: 'Gene Keys',    description: '64の遺伝鍵から影・贈り物・シッディの道筋を見る' },
-  humandesign: { name: 'Human Design', description: 'タイプ・権威・センターから自分らしい在り方を知る' },
-  kyusei:      { name: '九星気学',     description: '本命星と月命星から気質と相性傾向を見る' },
-  iching:      { name: '易経',         description: '64卦の象意から状況と変化の指針を読む' },
-  zokan:       { name: '蔵干',         description: '地支に隠れた天干から内面に秘めた性質を見る' },
+// 占術の日本語名 + 説明文 + タグ（UI 表示用）
+export const DIVINATION_META: Record<DivinationId, { name: string; description: string; tags: string[] }> = {
+  western:     { name: '西洋占星術',   description: '天体配置から本質と人生のテーマを読み解く',          tags: ['性格', '人生テーマ', '恋愛'] },
+  shichuu:     { name: '四柱推命',     description: '天干地支から性格と運命の傾向を見る',               tags: ['性格', '仕事運', '運命の流れ'] },
+  sanmei:      { name: '算命学',       description: '十大主星と人体星図から性質と人生プログラムを読む',   tags: ['性格', '仕事運', '人生プログラム'] },
+  numerology:  { name: '数秘術',       description: '数字に込められた意味からライフパスと運命数を導く',   tags: ['性格', 'ライフパス'] },
+  sukuyo:      { name: '宿曜占星術',   description: '月の運行に基づく27宿から気質を見る',               tags: ['相性', '恋愛'] },
+  maya:        { name: 'マヤ暦',       description: '銀河の音と太陽の紋章から魂の役割と才能を読む',       tags: ['才能', '魂の役割'] },
+  genekeys:    { name: 'Gene Keys',    description: '64の遺伝鍵から影・贈り物・シッディの道筋を見る',    tags: ['才能', '人生テーマ'] },
+  humandesign: { name: 'Human Design', description: 'タイプ・権威・センターから自分らしい在り方を知る',   tags: ['性格', '仕事スタイル'] },
+  kyusei:      { name: '九星気学',     description: '本命星と月命星から気質と相性傾向を見る',            tags: ['相性', 'タイミング'] },
+  iching:      { name: '易経',         description: '64卦の象意から状況と変化の指針を読む',             tags: ['状況判断', 'タイミング'] },
+  zokan:       { name: '蔵干',         description: '地支に隠れた天干から内面に秘めた性質を見る',        tags: ['性格の深層'] },
 }
 
 // ========================================

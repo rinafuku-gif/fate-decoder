@@ -7,6 +7,25 @@ type Status = 'idle' | 'playing' | 'paused'
 const RATES = [0.85, 1.0, 1.15, 1.3, 1.5] as const
 type Rate = (typeof RATES)[number]
 
+type Engine = 'edge' | 'browser'
+
+interface EdgeVoiceOption {
+  id: string
+  label: string
+  description: string
+}
+
+const EDGE_VOICES: EdgeVoiceOption[] = [
+  { id: 'ja-JP-NanamiNeural', label: 'Nanami',  description: '女性・明るく親しみやすい' },
+  { id: 'ja-JP-AoiNeural',    label: 'Aoi',     description: '女性・若く爽やか' },
+  { id: 'ja-JP-MayuNeural',   label: 'Mayu',    description: '女性・落ち着いた優しさ' },
+  { id: 'ja-JP-ShioriNeural', label: 'Shiori',  description: '女性・柔らかい' },
+  { id: 'ja-JP-KeitaNeural',  label: 'Keita',   description: '男性・しっかりした印象' },
+  { id: 'ja-JP-NaokiNeural',  label: 'Naoki',   description: '男性・若く明るい' },
+]
+
+const DEFAULT_EDGE_VOICE = 'ja-JP-NanamiNeural'
+
 interface Props {
   text: string
   label?: string
@@ -87,27 +106,61 @@ function splitForSpeech(raw: string): string[] {
   return chunks
 }
 
+// Edge TTS: 1チャンクをAPI呼び出し → ArrayBuffer 取得
+async function fetchEdgeTTS(text: string, voice: string): Promise<ArrayBuffer> {
+  const res = await fetch('/api/tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, voice }),
+  })
+  if (!res.ok) {
+    const msg = await res.text().catch(() => 'unknown error')
+    throw new Error(`TTS API error ${res.status}: ${msg}`)
+  }
+  return res.arrayBuffer()
+}
+
 export function SpeechReader({ text, label = '読み上げ' }: Props) {
+  // ---- engine ----
+  const [engine, setEngine] = useState<Engine>('edge')
+  const engineRef = useRef<Engine>('edge')
+  useEffect(() => { engineRef.current = engine }, [engine])
+
+  // ---- edge tts ----
+  const [edgeVoice, setEdgeVoice] = useState<string>(DEFAULT_EDGE_VOICE)
+  const edgeVoiceRef = useRef<string>(DEFAULT_EDGE_VOICE)
+  useEffect(() => { edgeVoiceRef.current = edgeVoice }, [edgeVoice])
+
+  // audioContext for edge tts playback
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const currentSourceRef = useRef<AudioBufferSourceNode | null>(null)
+  const edgeCancelledRef = useRef(false)
+
+  // ---- browser tts ----
   const [supported, setSupported] = useState(false)
+  const [voiceList, setVoiceList] = useState<SpeechSynthesisVoice[]>([])
+  const [browserVoice, setBrowserVoice] = useState<SpeechSynthesisVoice | null>(null)
+  const browserVoiceRef = useRef<SpeechSynthesisVoice | null>(null)
+  useEffect(() => { browserVoiceRef.current = browserVoice }, [browserVoice])
+  const [iosMode, setIosMode] = useState(false)
+
+  // ---- shared ----
   const [status, setStatus] = useState<Status>('idle')
   const [rate, setRate] = useState<Rate>(1.0)
-  const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null)
-  const [voiceList, setVoiceList] = useState<SpeechSynthesisVoice[]>([])
+  const rateRef = useRef<Rate>(1.0)
+  useEffect(() => { rateRef.current = rate }, [rate])
+
   const [chunkIndex, setChunkIndex] = useState(0)
   const [open, setOpen] = useState(false)
-  const [iosMode, setIosMode] = useState(false)
+  const [edgeError, setEdgeError] = useState<string | null>(null)
 
   const chunks = useMemo(() => splitForSpeech(text), [text])
   const totalChunks = chunks.length
 
   const indexRef = useRef(0)
-  const cancelledRef = useRef(false)
-  const rateRef = useRef<Rate>(rate)
-  const voiceRef = useRef<SpeechSynthesisVoice | null>(null)
+  const browserCancelledRef = useRef(false)
 
-  useEffect(() => { rateRef.current = rate }, [rate])
-  useEffect(() => { voiceRef.current = voice }, [voice])
-
+  // ---- Browser TTS 初期化 ----
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
     setSupported(true)
@@ -116,10 +169,9 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
     const loadVoices = () => {
       const list = window.speechSynthesis.getVoices()
       if (list.length === 0) return
-      // 明るめ女性 → その他日本語 → 男性 → 非日本語 の順にソート
       const sorted = list.slice().sort((a, b) => rankVoice(a) - rankVoice(b))
       setVoiceList(sorted)
-      setVoice(prev => prev ?? sorted[0] ?? null)
+      setBrowserVoice(prev => prev ?? sorted[0] ?? null)
     }
     loadVoices()
     window.speechSynthesis.onvoiceschanged = loadVoices
@@ -129,28 +181,107 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
     }
   }, [])
 
+  // アンマウント時クリーンアップ
   useEffect(() => () => {
+    edgeCancelledRef.current = true
+    currentSourceRef.current?.stop()
+    audioCtxRef.current?.close()
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      cancelledRef.current = true
+      browserCancelledRef.current = true
       window.speechSynthesis.cancel()
     }
   }, [])
 
-  // chunks（テキスト）が変わったら必ず停止リセット
+  // chunks変化 → 停止リセット
   useEffect(() => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
-    cancelledRef.current = true
-    window.speechSynthesis.cancel()
+    edgeCancelledRef.current = true
+    currentSourceRef.current?.stop()
+    currentSourceRef.current = null
+    browserCancelledRef.current = true
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
     setStatus('idle')
     setChunkIndex(0)
     indexRef.current = 0
+    setEdgeError(null)
   }, [chunks])
 
-  const speakFrom = useCallback((startIndex: number) => {
+  // ============================================================
+  // Edge TTS 再生ロジック
+  // ============================================================
+  const speakEdgeFrom = useCallback(async (startIndex: number) => {
+    if (chunks.length === 0) return
+
+    edgeCancelledRef.current = false
+    currentSourceRef.current?.stop()
+    currentSourceRef.current = null
+
+    let ctx = audioCtxRef.current
+    if (!ctx || ctx.state === 'closed') {
+      ctx = new AudioContext()
+      audioCtxRef.current = ctx
+    }
+    if (ctx.state === 'suspended') {
+      await ctx.resume()
+    }
+
+    let i = Math.max(0, Math.min(startIndex, chunks.length - 1))
+    indexRef.current = i
+    setChunkIndex(i)
+    setStatus('playing')
+    setEdgeError(null)
+
+    const playNext = async () => {
+      if (edgeCancelledRef.current) return
+      if (i >= chunks.length) {
+        setStatus('idle')
+        setChunkIndex(0)
+        indexRef.current = 0
+        return
+      }
+
+      try {
+        const buf = await fetchEdgeTTS(chunks[i], edgeVoiceRef.current)
+        if (edgeCancelledRef.current) return
+
+        const audioBuf = await ctx!.decodeAudioData(buf)
+        if (edgeCancelledRef.current) return
+
+        // 速度調整：AudioBufferSourceNode の playbackRate で再現
+        const source = ctx!.createBufferSource()
+        source.buffer = audioBuf
+        source.playbackRate.value = rateRef.current
+        source.connect(ctx!.destination)
+        currentSourceRef.current = source
+
+        source.onended = () => {
+          if (edgeCancelledRef.current) return
+          i += 1
+          indexRef.current = i
+          setChunkIndex(i)
+          playNext()
+        }
+        source.start()
+      } catch (err) {
+        if (edgeCancelledRef.current) return
+        const msg = err instanceof Error ? err.message : 'TTS error'
+        setEdgeError(msg)
+        setStatus('idle')
+      }
+    }
+
+    await playNext()
+  }, [chunks])
+
+  // ============================================================
+  // Browser TTS 再生ロジック
+  // ============================================================
+  const speakBrowserFrom = useCallback((startIndex: number) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
     if (chunks.length === 0) return
 
-    cancelledRef.current = false
+    browserCancelledRef.current = false
     window.speechSynthesis.cancel()
 
     let i = Math.max(0, Math.min(startIndex, chunks.length - 1))
@@ -159,7 +290,7 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
     setStatus('playing')
 
     const speakNext = () => {
-      if (cancelledRef.current) return
+      if (browserCancelledRef.current) return
       if (i >= chunks.length) {
         setStatus('idle')
         setChunkIndex(0)
@@ -169,9 +300,9 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
       const utt = new SpeechSynthesisUtterance(chunks[i])
       utt.rate = rateRef.current
       utt.lang = 'ja-JP'
-      if (voiceRef.current) utt.voice = voiceRef.current
+      if (browserVoiceRef.current) utt.voice = browserVoiceRef.current
       utt.onend = () => {
-        if (cancelledRef.current) return
+        if (browserCancelledRef.current) return
         i += 1
         indexRef.current = i
         setChunkIndex(i)
@@ -179,7 +310,7 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
       }
       utt.onerror = (e) => {
         if (e.error === 'canceled' || e.error === 'interrupted') return
-        cancelledRef.current = true
+        browserCancelledRef.current = true
         setStatus('idle')
       }
       window.speechSynthesis.speak(utt)
@@ -187,72 +318,147 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
     speakNext()
   }, [chunks])
 
+  // ============================================================
+  // 統合 Play / Pause / Stop
+  // ============================================================
   const handlePlay = useCallback(() => {
-    if (!supported) return
-    if (status === 'playing') return
-    if (status === 'paused') {
-      if (iosMode) {
-        speakFrom(indexRef.current)
-      } else {
-        window.speechSynthesis.resume()
-        setStatus('playing')
+    if (engine === 'edge') {
+      if (status === 'playing') return
+      // Edge TTS は pause/resume 非対応 → paused 時も最初から or 現在位置から再開
+      speakEdgeFrom(status === 'idle' ? 0 : indexRef.current)
+    } else {
+      if (!supported) return
+      if (status === 'playing') return
+      if (status === 'paused') {
+        if (iosMode) {
+          speakBrowserFrom(indexRef.current)
+        } else {
+          window.speechSynthesis.resume()
+          setStatus('playing')
+        }
+        return
       }
-      return
+      speakBrowserFrom(status === 'idle' ? 0 : indexRef.current)
     }
-    speakFrom(status === 'idle' ? 0 : indexRef.current)
-  }, [supported, status, iosMode, speakFrom])
+  }, [engine, status, supported, iosMode, speakEdgeFrom, speakBrowserFrom])
 
   const handlePause = useCallback(() => {
-    if (!supported || status !== 'playing') return
-    if (iosMode) {
-      cancelledRef.current = true
-      window.speechSynthesis.cancel()
+    if (engine === 'edge') {
+      if (status !== 'playing') return
+      edgeCancelledRef.current = true
+      currentSourceRef.current?.stop()
+      currentSourceRef.current = null
       setStatus('paused')
     } else {
-      window.speechSynthesis.pause()
-      setStatus('paused')
+      if (!supported || status !== 'playing') return
+      if (iosMode) {
+        browserCancelledRef.current = true
+        window.speechSynthesis.cancel()
+        setStatus('paused')
+      } else {
+        window.speechSynthesis.pause()
+        setStatus('paused')
+      }
     }
-  }, [supported, status, iosMode])
+  }, [engine, status, supported, iosMode])
 
   const handleStop = useCallback(() => {
-    if (!supported) return
-    cancelledRef.current = true
-    window.speechSynthesis.cancel()
+    if (engine === 'edge') {
+      edgeCancelledRef.current = true
+      currentSourceRef.current?.stop()
+      currentSourceRef.current = null
+    } else {
+      if (!supported) return
+      browserCancelledRef.current = true
+      window.speechSynthesis.cancel()
+    }
     setStatus('idle')
     setChunkIndex(0)
     indexRef.current = 0
-  }, [supported])
+    setEdgeError(null)
+  }, [engine, supported])
 
-  // 速度変更は次のチャンクから自動反映（rateRefを通じて）。再speakしない
   const handleRateChange = useCallback((next: Rate) => {
     setRate(next)
   }, [])
 
-  // 音声切替は次のチャンクから自動反映
-  const handleVoiceChange = useCallback((name: string) => {
+  const handleBrowserVoiceChange = useCallback((name: string) => {
     const v = voiceList.find(x => x.name === name) || null
-    setVoice(v)
+    setBrowserVoice(v)
   }, [voiceList])
 
-  // 試聴：現在選択中のvoiceで短いサンプルを再生
+  // 試聴（エンジン対応）
   const handlePreview = useCallback(() => {
-    if (!supported || !voice) return
-    cancelledRef.current = true
-    window.speechSynthesis.cancel()
+    const sample = 'こんにちは。診断結果をお読みします。'
+    if (engine === 'edge') {
+      edgeCancelledRef.current = true
+      currentSourceRef.current?.stop()
+      currentSourceRef.current = null
+      setStatus('idle')
+      setChunkIndex(0)
+      indexRef.current = 0
+      // 簡易再生：speakEdgeFrom にチャンクを渡すのではなく、直接 API 呼び出し
+      let ctx = audioCtxRef.current
+      if (!ctx || ctx.state === 'closed') {
+        ctx = new AudioContext()
+        audioCtxRef.current = ctx
+      }
+      const v = edgeVoiceRef.current
+      const r = rateRef.current
+      ;(async () => {
+        try {
+          const buf = await fetchEdgeTTS(sample, v)
+          if (edgeCancelledRef.current) return
+          const audioBuf = await ctx!.decodeAudioData(buf)
+          const source = ctx!.createBufferSource()
+          source.buffer = audioBuf
+          source.playbackRate.value = r
+          source.connect(ctx!.destination)
+          source.start()
+        } catch {
+          // 試聴エラーは無視（再生不可の場合も含む）
+        }
+      })()
+    } else {
+      if (!supported || !browserVoiceRef.current) return
+      browserCancelledRef.current = true
+      window.speechSynthesis.cancel()
+      setStatus('idle')
+      setChunkIndex(0)
+      indexRef.current = 0
+      window.setTimeout(() => {
+        browserCancelledRef.current = false
+        const utt = new SpeechSynthesisUtterance(sample)
+        utt.lang = 'ja-JP'
+        utt.rate = rateRef.current
+        utt.voice = browserVoiceRef.current
+        window.speechSynthesis.speak(utt)
+      }, 100)
+    }
+  }, [engine, supported])
+
+  // エンジン切り替え時に再生を停止
+  const handleEngineChange = useCallback((next: Engine) => {
+    edgeCancelledRef.current = true
+    currentSourceRef.current?.stop()
+    currentSourceRef.current = null
+    browserCancelledRef.current = true
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
     setStatus('idle')
     setChunkIndex(0)
     indexRef.current = 0
-    window.setTimeout(() => {
-      cancelledRef.current = false
-      const utt = new SpeechSynthesisUtterance('こんにちは。診断結果をお読みします。')
-      utt.lang = 'ja-JP'
-      utt.rate = rateRef.current
-      utt.voice = voice
-      window.speechSynthesis.speak(utt)
-    }, 100)
-  }, [supported, voice])
+    setEdgeError(null)
+    setEngine(next)
+  }, [])
 
-  if (!supported) {
+  // Edge TTS は常に「サポート」扱い（サーバーサイドAPIのため）
+  // ただし、AudioContext が使えない環境（サーバーサイドレンダリング）は考慮不要
+  const isEdgeAvailable = typeof window !== 'undefined'
+  const isBrowserAvailable = supported
+
+  if (!isEdgeAvailable && !isBrowserAvailable) {
     return (
       <div className="speech-reader speech-reader-unsupported">
         <span>このブラウザは音声読み上げに非対応です</span>
@@ -304,6 +510,12 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
         </button>
       </div>
 
+      {edgeError && engine === 'edge' && (
+        <div className="speech-edge-error">
+          音声取得に失敗しました。ブラウザ音声に切り替えてお試しください。
+        </div>
+      )}
+
       {(isPlaying || isPaused) && (
         <div className="speech-progress">
           <div className="speech-progress-bar" style={{ width: `${progress}%` }} />
@@ -315,6 +527,85 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
 
       {open && (
         <div id="speech-settings-panel" className="speech-settings">
+          {/* エンジン切り替え */}
+          <div className="speech-setting-row">
+            <span className="speech-setting-label">音声</span>
+            <div className="speech-engine-buttons">
+              <button
+                type="button"
+                onClick={() => handleEngineChange('edge')}
+                className={`speech-engine-btn ${engine === 'edge' ? 'is-active' : ''}`}
+              >
+                Edge TTS
+              </button>
+              <button
+                type="button"
+                onClick={() => handleEngineChange('browser')}
+                className={`speech-engine-btn ${engine === 'browser' ? 'is-active' : ''}`}
+                disabled={!isBrowserAvailable}
+              >
+                ブラウザ
+              </button>
+            </div>
+          </div>
+
+          {/* Edge TTS voice 選択 */}
+          {engine === 'edge' && (
+            <div className="speech-setting-row">
+              <span className="speech-setting-label">声</span>
+              <select
+                className="speech-voice-select"
+                value={edgeVoice}
+                onChange={(e) => setEdgeVoice(e.target.value)}
+              >
+                {EDGE_VOICES.map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.label} — {v.description}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handlePreview}
+                className="speech-preview-btn"
+                aria-label="試聴"
+                title="この声で試聴"
+                disabled={isPlaying}
+              >
+                ♪ 試聴
+              </button>
+            </div>
+          )}
+
+          {/* Browser TTS voice 選択 */}
+          {engine === 'browser' && voiceList.length > 1 && (
+            <div className="speech-setting-row">
+              <span className="speech-setting-label">声</span>
+              <select
+                className="speech-voice-select"
+                value={browserVoice?.name || ''}
+                onChange={(e) => handleBrowserVoiceChange(e.target.value)}
+              >
+                {voiceList.map((v, i) => (
+                  <option key={`${v.voiceURI || v.name}-${v.lang}-${i}`} value={v.name}>
+                    {v.name} ({v.lang})
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handlePreview}
+                className="speech-preview-btn"
+                aria-label="試聴"
+                title="この声で試聴"
+                disabled={!browserVoice}
+              >
+                ♪ 試聴
+              </button>
+            </div>
+          )}
+
+          {/* 速度 */}
           <div className="speech-setting-row">
             <span className="speech-setting-label">速度</span>
             <div className="speech-rate-buttons">
@@ -330,35 +621,15 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
               ))}
             </div>
           </div>
-          {voiceList.length > 1 && (
-            <div className="speech-setting-row">
-              <span className="speech-setting-label">音声</span>
-              <select
-                className="speech-voice-select"
-                value={voice?.name || ''}
-                onChange={(e) => handleVoiceChange(e.target.value)}
-              >
-                {voiceList.map((v, i) => (
-                  <option key={`${v.voiceURI || v.name}-${v.lang}-${i}`} value={v.name}>
-                    {v.name} ({v.lang})
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={handlePreview}
-                className="speech-preview-btn"
-                aria-label="試聴"
-                title="この声で試聴"
-                disabled={!voice}
-              >
-                ♪ 試聴
-              </button>
-            </div>
-          )}
-          {iosMode && (status === 'playing' || status === 'paused') && (
+
+          {engine === 'browser' && iosMode && (status === 'playing' || status === 'paused') && (
             <p className="speech-settings-note">
               速度・音声の変更は次のチャンクから反映されます
+            </p>
+          )}
+          {engine === 'edge' && (
+            <p className="speech-settings-note">
+              Edge TTS はインターネット接続が必要です
             </p>
           )}
         </div>

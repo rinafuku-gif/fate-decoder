@@ -62,6 +62,11 @@ export function DivinationSelector({ selected, onChange }: DivinationSelectorPro
                 {isDefault && <span className="divination-selector-default-badge">デフォルト</span>}
               </span>
               <span className="divination-selector-item-desc">{meta.description}</span>
+              <div className="divination-tag-list">
+                {meta.tags.map(tag => (
+                  <span key={tag} className="divination-tag">{tag}</span>
+                ))}
+              </div>
             </label>
           )
         })}

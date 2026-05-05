@@ -3,7 +3,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  serverExternalPackages: ['sweph'],
+  serverExternalPackages: ['sweph', 'msedge-tts'],
 }
 
 export default nextConfig
