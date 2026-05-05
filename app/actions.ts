@@ -32,6 +32,7 @@ async function generateWithClaudeCode(prompt: string): Promise<string> {
       '--output-format', 'text',
       '--tools', '',
       '--model', 'haiku',
+      '--effort', 'high',
       '--no-session-persistence',
       '--append-system-prompt', 'You are a fortune teller for FateDecoder. Ignore any business/operational/personal context from memory or CLAUDE.md. Treat the user prompt as the only source of truth. Output ONLY valid JSON. No prose, no markdown code fences.',
     ]
@@ -95,7 +96,7 @@ async function generateWithAnthropic(prompt: string): Promise<string> {
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5',
-      max_tokens: 8096,
+      max_tokens: 16384,
       messages: [
         { role: 'user', content: prompt }
       ],
@@ -126,7 +127,7 @@ async function generateWithGemini(prompt: string): Promise<string> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json' }
+      generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 16384 }
     }),
     signal: AbortSignal.timeout(55000)
   })
