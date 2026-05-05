@@ -418,18 +418,31 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
       setStatus('idle')
       setChunkIndex(0)
       indexRef.current = 0
-      // 簡易再生：speakEdgeFrom にチャンクを渡すのではなく、直接 API 呼び出し
+      // iOS Safari unlock: user gesture内で同期的にAudioContextを生成・resume・サイレント再生
       let ctx = audioCtxRef.current
       if (!ctx || ctx.state === 'closed') {
-        ctx = new AudioContext()
-        audioCtxRef.current = ctx
+        const Ctor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        if (Ctor) {
+          ctx = new Ctor()
+          audioCtxRef.current = ctx
+        }
+      }
+      if (ctx) {
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+        try {
+          const silentBuffer = ctx.createBuffer(1, 1, 22050)
+          const silentSource = ctx.createBufferSource()
+          silentSource.buffer = silentBuffer
+          silentSource.connect(ctx.destination)
+          silentSource.start(0)
+        } catch {}
       }
       const v = edgeVoiceRef.current
       const r = rateRef.current
       ;(async () => {
         try {
           const buf = await fetchEdgeTTS(sample, v)
-          if (edgeCancelledRef.current) return
+          edgeCancelledRef.current = false
           const audioBuf = await ctx!.decodeAudioData(buf)
           const source = ctx!.createBufferSource()
           source.buffer = audioBuf
