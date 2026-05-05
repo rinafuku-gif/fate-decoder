@@ -2662,6 +2662,12 @@ textarea {
   line-height: 1.5;
 }
 
+.speech-voicevox-link {
+  color: var(--c-error);
+  text-decoration: underline;
+  margin: 0 2px;
+}
+
 @media (max-width: 600px) {
   .speech-reader {
     margin: 12px 16px 20px;

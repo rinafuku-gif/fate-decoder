@@ -22,6 +22,16 @@ npm run local
 - AI 生成時に Anthropic/Gemini API を呼ばず、`claude -p` コマンドを子プロセスとして起動する
 - Claude Code の認証セッション（`~/.claude/` 配下）をそのまま利用するため API キー不要
 
+## VOICEVOX を使う（任意）
+
+```markdown
+1. VOICEVOX 公式サイトからアプリをDL: https://voicevox.hiroshiba.jp/
+2. アプリを起動（自動でエンジンが localhost:50021 で動く）
+3. ブラウザで「VOICEVOX」エンジンに切替 → キャラクター選択 → 試聴
+```
+
+VOICEVOX が起動していない場合、エラー表示が出る。アプリを起動してから再度お試しください。
+
 ## 注意事項
 
 - 本番版（app/）とは完全に独立している。Vercel デプロイには影響しない

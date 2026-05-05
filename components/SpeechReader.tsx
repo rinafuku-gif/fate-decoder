@@ -7,7 +7,7 @@ type Status = 'idle' | 'playing' | 'paused'
 const RATES = [0.85, 1.0, 1.15, 1.3, 1.5] as const
 type Rate = (typeof RATES)[number]
 
-type Engine = 'edge' | 'browser'
+type Engine = 'edge' | 'browser' | 'voicevox'
 
 interface EdgeVoiceOption {
   id: string
@@ -21,6 +21,34 @@ const EDGE_VOICES: EdgeVoiceOption[] = [
 ]
 
 const DEFAULT_EDGE_VOICE = 'ja-JP-NanamiNeural'
+
+// ----------------------------------------
+// VOICEVOX スピーカー定義
+// ----------------------------------------
+interface VoicevoxSpeakerOption {
+  id: number
+  label: string
+  description: string
+}
+
+const VOICEVOX_SPEAKERS: VoicevoxSpeakerOption[] = [
+  { id: 2,  label: '四国めたん（ノーマル）', description: '女性・しっかり' },
+  { id: 0,  label: '四国めたん（あまあま）', description: '女性・甘え' },
+  { id: 6,  label: '四国めたん（ツンツン）', description: '女性・ツンデレ' },
+  { id: 3,  label: 'ずんだもん（ノーマル）', description: '中性・元気' },
+  { id: 1,  label: 'ずんだもん（あまあま）', description: '中性・甘え' },
+  { id: 8,  label: '春日部つむぎ',          description: '女性・落ち着き' },
+  { id: 9,  label: '波音リツ',              description: '女性・しっかり' },
+  { id: 11, label: '玄野武宏',              description: '男性・かっこいい' },
+  { id: 12, label: '白上虎太郎（ふつう）',   description: '男性・元気' },
+  { id: 13, label: '青山龍星',              description: '男性・低音' },
+  { id: 14, label: '冥鳴ひまり',            description: '女性・優しい' },
+  { id: 16, label: '九州そら（ノーマル）',   description: '女性・しっとり' },
+]
+
+const DEFAULT_VOICEVOX_SPEAKER = 3 // ずんだもん（ノーマル）
+
+const IS_LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true'
 
 interface Props {
   text: string
@@ -116,6 +144,30 @@ async function fetchEdgeTTS(text: string, voice: string): Promise<ArrayBuffer> {
   return res.arrayBuffer()
 }
 
+// VOICEVOX: 1チャンクをAPI呼び出し → ArrayBuffer 取得（WAV）
+async function fetchVoicevoxTTS(text: string, speaker: number): Promise<ArrayBuffer> {
+  const res = await fetch('/api/tts-voicevox', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, speaker }),
+  })
+  if (!res.ok) {
+    if (res.status === 503) {
+      throw new VoicevoxUnavailableError('VOICEVOX エンジンが起動していません')
+    }
+    const msg = await res.text().catch(() => 'unknown error')
+    throw new Error(`VOICEVOX API error ${res.status}: ${msg}`)
+  }
+  return res.arrayBuffer()
+}
+
+class VoicevoxUnavailableError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'VoicevoxUnavailableError'
+  }
+}
+
 export function SpeechReader({ text, label = '読み上げ' }: Props) {
   // ---- engine ----
   const [engine, setEngine] = useState<Engine>('edge')
@@ -127,7 +179,13 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
   const edgeVoiceRef = useRef<string>(DEFAULT_EDGE_VOICE)
   useEffect(() => { edgeVoiceRef.current = edgeVoice }, [edgeVoice])
 
-  // audioContext for edge tts playback
+  // ---- voicevox ----
+  const [voicevoxSpeaker, setVoicevoxSpeaker] = useState<number>(DEFAULT_VOICEVOX_SPEAKER)
+  const voicevoxSpeakerRef = useRef<number>(DEFAULT_VOICEVOX_SPEAKER)
+  useEffect(() => { voicevoxSpeakerRef.current = voicevoxSpeaker }, [voicevoxSpeaker])
+  const [voicevoxError, setVoicevoxError] = useState<string | null>(null)
+
+  // audioContext for edge tts / voicevox playback
   const audioCtxRef = useRef<AudioContext | null>(null)
   const currentSourceRef = useRef<AudioBufferSourceNode | null>(null)
   const edgeCancelledRef = useRef(false)
@@ -149,6 +207,7 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
   const [chunkIndex, setChunkIndex] = useState(0)
   const [open, setOpen] = useState(false)
   const [edgeError, setEdgeError] = useState<string | null>(null)
+  const voicevoxCancelledRef = useRef(false)
 
   const chunks = useMemo(() => splitForSpeech(text), [text])
   const totalChunks = chunks.length
@@ -180,6 +239,7 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
   // アンマウント時クリーンアップ
   useEffect(() => () => {
     edgeCancelledRef.current = true
+    voicevoxCancelledRef.current = true
     currentSourceRef.current?.stop()
     audioCtxRef.current?.close()
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -191,6 +251,7 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
   // chunks変化 → 停止リセット
   useEffect(() => {
     edgeCancelledRef.current = true
+    voicevoxCancelledRef.current = true
     currentSourceRef.current?.stop()
     currentSourceRef.current = null
     browserCancelledRef.current = true
@@ -201,6 +262,7 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
     setChunkIndex(0)
     indexRef.current = 0
     setEdgeError(null)
+    setVoicevoxError(null)
   }, [chunks])
 
   // ============================================================
@@ -271,6 +333,76 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
   }, [chunks])
 
   // ============================================================
+  // VOICEVOX 再生ロジック（Edge TTS と同じ AudioContext ベース）
+  // ============================================================
+  const speakVoicevoxFrom = useCallback(async (startIndex: number) => {
+    if (chunks.length === 0) return
+
+    voicevoxCancelledRef.current = false
+    currentSourceRef.current?.stop()
+    currentSourceRef.current = null
+
+    let ctx = audioCtxRef.current
+    if (!ctx || ctx.state === 'closed') {
+      ctx = new AudioContext()
+      audioCtxRef.current = ctx
+    }
+    if (ctx.state === 'suspended') {
+      await ctx.resume()
+    }
+
+    let i = Math.max(0, Math.min(startIndex, chunks.length - 1))
+    indexRef.current = i
+    setChunkIndex(i)
+    setStatus('playing')
+    setVoicevoxError(null)
+
+    const playNext = async () => {
+      if (voicevoxCancelledRef.current) return
+      if (i >= chunks.length) {
+        setStatus('idle')
+        setChunkIndex(0)
+        indexRef.current = 0
+        return
+      }
+
+      try {
+        const buf = await fetchVoicevoxTTS(chunks[i], voicevoxSpeakerRef.current)
+        if (voicevoxCancelledRef.current) return
+
+        const audioBuf = await ctx!.decodeAudioData(buf)
+        if (voicevoxCancelledRef.current) return
+
+        const source = ctx!.createBufferSource()
+        source.buffer = audioBuf
+        source.playbackRate.value = rateRef.current
+        source.connect(ctx!.destination)
+        currentSourceRef.current = source
+
+        source.onended = () => {
+          if (voicevoxCancelledRef.current) return
+          i += 1
+          indexRef.current = i
+          setChunkIndex(i)
+          playNext()
+        }
+        source.start()
+      } catch (err) {
+        if (voicevoxCancelledRef.current) return
+        if (err instanceof VoicevoxUnavailableError) {
+          setVoicevoxError('voicevox_unavailable')
+        } else {
+          const msg = err instanceof Error ? err.message : 'VOICEVOX error'
+          setVoicevoxError(msg)
+        }
+        setStatus('idle')
+      }
+    }
+
+    await playNext()
+  }, [chunks])
+
+  // ============================================================
   // Browser TTS 再生ロジック
   // ============================================================
   const speakBrowserFrom = useCallback((startIndex: number) => {
@@ -317,32 +449,40 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
   // ============================================================
   // 統合 Play / Pause / Stop
   // ============================================================
+  // iOS Safari AudioContext unlock（Edge TTS / VOICEVOX 共通）
+  const unlockAudioContext = useCallback(() => {
+    if (typeof window === 'undefined') return
+    let ctx = audioCtxRef.current
+    if (!ctx || ctx.state === 'closed') {
+      const Ctor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (Ctor) {
+        ctx = new Ctor()
+        audioCtxRef.current = ctx
+      }
+    }
+    if (ctx) {
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+      try {
+        const silentBuffer = ctx.createBuffer(1, 1, 22050)
+        const silentSource = ctx.createBufferSource()
+        silentSource.buffer = silentBuffer
+        silentSource.connect(ctx.destination)
+        silentSource.start(0)
+      } catch {}
+    }
+  }, [])
+
   const handlePlay = useCallback(() => {
     if (engine === 'edge') {
       if (status === 'playing') return
-      // iOS Safari unlock: user gesture内で同期的にAudioContextを生成・resume・サイレント再生
-      if (typeof window !== 'undefined') {
-        let ctx = audioCtxRef.current
-        if (!ctx || ctx.state === 'closed') {
-          const Ctor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-          if (Ctor) {
-            ctx = new Ctor()
-            audioCtxRef.current = ctx
-          }
-        }
-        if (ctx) {
-          if (ctx.state === 'suspended') ctx.resume().catch(() => {})
-          try {
-            const silentBuffer = ctx.createBuffer(1, 1, 22050)
-            const silentSource = ctx.createBufferSource()
-            silentSource.buffer = silentBuffer
-            silentSource.connect(ctx.destination)
-            silentSource.start(0)
-          } catch {}
-        }
-      }
-      // Edge TTS は pause/resume 非対応 → paused 時も最初から or 現在位置から再開
+      // iOS Safari unlock
+      unlockAudioContext()
       speakEdgeFrom(status === 'idle' ? 0 : indexRef.current)
+    } else if (engine === 'voicevox') {
+      if (status === 'playing') return
+      // iOS Safari unlock
+      unlockAudioContext()
+      speakVoicevoxFrom(status === 'idle' ? 0 : indexRef.current)
     } else {
       if (!supported) return
       if (status === 'playing') return
@@ -357,12 +497,18 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
       }
       speakBrowserFrom(status === 'idle' ? 0 : indexRef.current)
     }
-  }, [engine, status, supported, iosMode, speakEdgeFrom, speakBrowserFrom])
+  }, [engine, status, supported, iosMode, unlockAudioContext, speakEdgeFrom, speakVoicevoxFrom, speakBrowserFrom])
 
   const handlePause = useCallback(() => {
     if (engine === 'edge') {
       if (status !== 'playing') return
       edgeCancelledRef.current = true
+      currentSourceRef.current?.stop()
+      currentSourceRef.current = null
+      setStatus('paused')
+    } else if (engine === 'voicevox') {
+      if (status !== 'playing') return
+      voicevoxCancelledRef.current = true
       currentSourceRef.current?.stop()
       currentSourceRef.current = null
       setStatus('paused')
@@ -384,6 +530,10 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
       edgeCancelledRef.current = true
       currentSourceRef.current?.stop()
       currentSourceRef.current = null
+    } else if (engine === 'voicevox') {
+      voicevoxCancelledRef.current = true
+      currentSourceRef.current?.stop()
+      currentSourceRef.current = null
     } else {
       if (!supported) return
       browserCancelledRef.current = true
@@ -393,6 +543,7 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
     setChunkIndex(0)
     indexRef.current = 0
     setEdgeError(null)
+    setVoicevoxError(null)
   }, [engine, supported])
 
   const handleRateChange = useCallback((next: Rate) => {
@@ -407,46 +558,47 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
   // 試聴（エンジン対応）
   const handlePreview = useCallback(() => {
     const sample = 'こんにちは。診断結果をお読みします。'
-    if (engine === 'edge') {
-      edgeCancelledRef.current = true
+
+    if (engine === 'edge' || engine === 'voicevox') {
+      const isEdge = engine === 'edge'
+      if (isEdge) {
+        edgeCancelledRef.current = true
+      } else {
+        voicevoxCancelledRef.current = true
+      }
       currentSourceRef.current?.stop()
       currentSourceRef.current = null
       setStatus('idle')
       setChunkIndex(0)
       indexRef.current = 0
-      // iOS Safari unlock: user gesture内で同期的にAudioContextを生成・resume・サイレント再生
-      let ctx = audioCtxRef.current
-      if (!ctx || ctx.state === 'closed') {
-        const Ctor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-        if (Ctor) {
-          ctx = new Ctor()
-          audioCtxRef.current = ctx
-        }
-      }
-      if (ctx) {
-        if (ctx.state === 'suspended') ctx.resume().catch(() => {})
-        try {
-          const silentBuffer = ctx.createBuffer(1, 1, 22050)
-          const silentSource = ctx.createBufferSource()
-          silentSource.buffer = silentBuffer
-          silentSource.connect(ctx.destination)
-          silentSource.start(0)
-        } catch {}
-      }
-      const v = edgeVoiceRef.current
+
+      // iOS Safari unlock
+      unlockAudioContext()
+
+      const ctx = audioCtxRef.current
       const r = rateRef.current
+
       ;(async () => {
         try {
-          const buf = await fetchEdgeTTS(sample, v)
-          edgeCancelledRef.current = false
-          const audioBuf = await ctx!.decodeAudioData(buf)
-          const source = ctx!.createBufferSource()
+          const buf = isEdge
+            ? await fetchEdgeTTS(sample, edgeVoiceRef.current)
+            : await fetchVoicevoxTTS(sample, voicevoxSpeakerRef.current)
+
+          if (isEdge) {
+            edgeCancelledRef.current = false
+          } else {
+            voicevoxCancelledRef.current = false
+          }
+
+          if (!ctx) return
+          const audioBuf = await ctx.decodeAudioData(buf)
+          const source = ctx.createBufferSource()
           source.buffer = audioBuf
           source.playbackRate.value = r
-          source.connect(ctx!.destination)
+          source.connect(ctx.destination)
           source.start()
         } catch {
-          // 試聴エラーは無視（再生不可の場合も含む）
+          // 試聴エラーは無視
         }
       })()
     } else {
@@ -465,11 +617,12 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
         window.speechSynthesis.speak(utt)
       }, 100)
     }
-  }, [engine, supported])
+  }, [engine, supported, unlockAudioContext])
 
   // エンジン切り替え時に再生を停止
   const handleEngineChange = useCallback((next: Engine) => {
     edgeCancelledRef.current = true
+    voicevoxCancelledRef.current = true
     currentSourceRef.current?.stop()
     currentSourceRef.current = null
     browserCancelledRef.current = true
@@ -480,13 +633,14 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
     setChunkIndex(0)
     indexRef.current = 0
     setEdgeError(null)
+    setVoicevoxError(null)
     setEngine(next)
   }, [])
 
   // Edge TTS は常に「サポート」扱い（サーバーサイドAPIのため）
-  // ただし、AudioContext が使えない環境（サーバーサイドレンダリング）は考慮不要
   const isEdgeAvailable = typeof window !== 'undefined'
   const isBrowserAvailable = supported
+  const isVoicevoxAvailable = IS_LOCAL_MODE && typeof window !== 'undefined'
 
   if (!isEdgeAvailable && !isBrowserAvailable) {
     return (
@@ -546,6 +700,27 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
         </div>
       )}
 
+      {voicevoxError && engine === 'voicevox' && (
+        <div className="speech-edge-error">
+          {voicevoxError === 'voicevox_unavailable' ? (
+            <>
+              VOICEVOX エンジンに接続できません。
+              <a
+                href="https://voicevox.hiroshiba.jp/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="speech-voicevox-link"
+              >
+                VOICEVOX
+              </a>
+              を起動してから再度お試しください。
+            </>
+          ) : (
+            '音声生成に失敗しました。VOICEVOX が起動しているか確認してください。'
+          )}
+        </div>
+      )}
+
       {(isPlaying || isPaused) && (
         <div className="speech-progress">
           <div className="speech-progress-bar" style={{ width: `${progress}%` }} />
@@ -576,6 +751,15 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
               >
                 ブラウザ
               </button>
+              {isVoicevoxAvailable && (
+                <button
+                  type="button"
+                  onClick={() => handleEngineChange('voicevox')}
+                  className={`speech-engine-btn ${engine === 'voicevox' ? 'is-active' : ''}`}
+                >
+                  VOICEVOX
+                </button>
+              )}
             </div>
           </div>
 
@@ -591,6 +775,34 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
                 {EDGE_VOICES.map(v => (
                   <option key={v.id} value={v.id}>
                     {v.label} — {v.description}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handlePreview}
+                className="speech-preview-btn"
+                aria-label="試聴"
+                title="この声で試聴"
+                disabled={isPlaying}
+              >
+                ♪ 試聴
+              </button>
+            </div>
+          )}
+
+          {/* VOICEVOX speaker 選択 */}
+          {engine === 'voicevox' && (
+            <div className="speech-setting-row">
+              <span className="speech-setting-label">声</span>
+              <select
+                className="speech-voice-select"
+                value={voicevoxSpeaker}
+                onChange={(e) => setVoicevoxSpeaker(Number(e.target.value))}
+              >
+                {VOICEVOX_SPEAKERS.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.label} — {s.description}
                   </option>
                 ))}
               </select>
@@ -660,6 +872,11 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
           {engine === 'edge' && (
             <p className="speech-settings-note">
               Edge TTS はインターネット接続が必要です
+            </p>
+          )}
+          {engine === 'voicevox' && (
+            <p className="speech-settings-note">
+              VOICEVOX アプリを起動した状態でご利用ください
             </p>
           )}
         </div>

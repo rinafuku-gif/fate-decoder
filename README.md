@@ -30,6 +30,17 @@ npm run local
 Anthropic / Gemini API キーは不要。Claude Code のサブスクリプションセッションを使って生成する。
 詳細は `local-app/README.md` を参照。
 
+## VOICEVOX を使う（任意・ローカル版のみ）
+
+1. VOICEVOX 公式サイトからアプリをDL: https://voicevox.hiroshiba.jp/
+2. アプリを起動（自動でエンジンが localhost:50021 で動く）
+3. `npm run local` でローカル版を起動
+4. 設定パネルで「VOICEVOX」エンジンを選択 → キャラクターを選んで試聴
+
+VOICEVOX が起動していない場合はエラー表示が出る。アプリを起動してから再度お試しください。
+
+ずんだもん・四国めたん・春日部つむぎ・玄野武宏 など12キャラクター（各スタイル含む）から選択可能。
+
 ## ビルド確認
 
 ```bash
