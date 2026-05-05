@@ -388,11 +388,23 @@ export async function POST(request: NextRequest) {
 
     // Compatibility の追加プロパティ
     if (mode === 'compatibility' && data.name2) {
+      properties['出生時間'] = {
+        rich_text: [{ type: 'text', text: { content: data.birthTime || '' } }]
+      }
+      properties['出生地'] = {
+        rich_text: [{ type: 'text', text: { content: data.birthPlace || '' } }]
+      }
       properties['相手の名前'] = {
         rich_text: [{ type: 'text', text: { content: data.name2 } }]
       }
       properties['相手の生年月日'] = {
         rich_text: [{ type: 'text', text: { content: data.birthDate2 || '' } }]
+      }
+      properties['相手の出生時間'] = {
+        rich_text: [{ type: 'text', text: { content: data.birthTime2 || '' } }]
+      }
+      properties['相手の出生地'] = {
+        rich_text: [{ type: 'text', text: { content: data.birthPlace2 || '' } }]
       }
       properties['相性タイプ'] = {
         select: { name: data.compatType || 'general' }

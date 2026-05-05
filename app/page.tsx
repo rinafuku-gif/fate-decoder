@@ -116,7 +116,7 @@ export default function FateDecoder() {
   } | null>(null)
   const [selectedDivinations, setSelectedDivinations] = useState<DivinationId[]>([...DEFAULT_ON])
   const [shortTheme, setShortTheme] = useState<ShortThemeId>('overall')
-  const [person2, setPerson2] = useState({ name: '', year: '', month: '1', day: '1' })
+  const [person2, setPerson2] = useState({ name: '', year: '', month: '1', day: '1', birthHour: '', birthMinute: '', birthPlace: '' })
   const [formData, setFormData] = useState({
     name: '', year: '', month: '1', day: '1',
     birthHour: '', birthMinute: '',
@@ -849,11 +849,13 @@ ${extraPromptText}
     setScreen('loading')
 
     try {
-      const safeName1 = sanitizeForAI(formData.name, 50)
-      const safeName2 = sanitizeForAI(person2.name, 50)
+      const safeName1      = sanitizeForAI(formData.name, 50)
+      const safeName2      = sanitizeForAI(person2.name, 50)
+      const safeBirthPlace1 = sanitizeForAI(formData.birthPlace || '', 100)
+      const safeBirthPlace2 = sanitizeForAI(person2.birthPlace || '', 100)
 
       const data1 = calculateAll(parseInt(formData.year), parseInt(formData.month), parseInt(formData.day), formData.birthHour ? parseInt(formData.birthHour) : undefined, formData.birthMinute !== '' ? parseInt(formData.birthMinute) : undefined)
-      const data2 = calculateAll(parseInt(person2.year), parseInt(person2.month), parseInt(person2.day))
+      const data2 = calculateAll(parseInt(person2.year), parseInt(person2.month), parseInt(person2.day), person2.birthHour ? parseInt(person2.birthHour) : undefined, person2.birthMinute !== '' ? parseInt(person2.birthMinute) : undefined)
       const score = calculateCompatibility(data1, data2)
 
       const typeLabel = COMPAT_TYPE_CONFIG[compatType].label
@@ -881,7 +883,7 @@ ${extraPromptText}
 ${selectedLabel}
 
 【2人の情報】
-■ ${safeName1}さん (${formData.year}年${formData.month}月${formData.day}日生まれ)
+■ ${safeName1}さん (${formData.year}年${formData.month}月${formData.day}日生まれ${formData.birthHour ? ` ${String(formData.birthHour).padStart(2,'0')}:${String(formData.birthMinute || '00').padStart(2,'0')}生` : ''}${safeBirthPlace1 ? ` / ${safeBirthPlace1}出身` : ''})
 ${selectedDivinations.includes('maya') ? `・マヤ暦: KIN${data1.maya.kin} / 太陽の紋章:${data1.maya.glyph} / 銀河の音:${data1.maya.tone}` : ''}
 ${selectedDivinations.includes('sanmei') ? `・算命学: 中心星[${data1.bazi.weapon}]` : ''}
 ${selectedDivinations.includes('shichuu') ? `・四柱推命: 年柱[${data1.sanmeigaku.year}] / 月柱[${data1.sanmeigaku.month}] / 日柱[${data1.sanmeigaku.day}] / 日干[${data1.bazi.stem}]` : ''}
@@ -890,7 +892,7 @@ ${selectedDivinations.includes('western') ? `・西洋占星術（ホロスコ�
 ${selectedDivinations.includes('sukuyo') ? `・宿曜: ${data1.sukuyo}` : ''}
 ${extraPromptText1}
 
-■ ${safeName2}さん (${person2.year}年${person2.month}月${person2.day}日生まれ)
+■ ${safeName2}さん (${person2.year}年${person2.month}月${person2.day}日生まれ${person2.birthHour ? ` ${String(person2.birthHour).padStart(2,'0')}:${String(person2.birthMinute || '00').padStart(2,'0')}生` : ''}${safeBirthPlace2 ? ` / ${safeBirthPlace2}出身` : ''})
 ${selectedDivinations.includes('maya') ? `・マヤ暦: KIN${data2.maya.kin} / 太陽の紋章:${data2.maya.glyph} / 銀河の音:${data2.maya.tone}` : ''}
 ${selectedDivinations.includes('sanmei') ? `・算命学: 中心星[${data2.bazi.weapon}]` : ''}
 ${selectedDivinations.includes('shichuu') ? `・四柱推命: 年柱[${data2.sanmeigaku.year}] / 月柱[${data2.sanmeigaku.month}] / 日柱[${data2.sanmeigaku.day}] / 日干[${data2.bazi.stem}]` : ''}
@@ -966,9 +968,13 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
       // Notion保存
       const birthDate1 = `${formData.year}-${formData.month.padStart(2, '0')}-${formData.day.padStart(2, '0')}`
       const birthDate2 = `${person2.year}-${person2.month.padStart(2, '0')}-${person2.day.padStart(2, '0')}`
+      const birthTime1 = formData.birthHour && formData.birthMinute !== '' ? `${String(formData.birthHour).padStart(2, '0')}:${String(formData.birthMinute).padStart(2, '0')}` : ''
+      const birthTime2 = person2.birthHour && person2.birthMinute !== '' ? `${String(person2.birthHour).padStart(2, '0')}:${String(person2.birthMinute).padStart(2, '0')}` : ''
       saveToNotion({
         mode: 'compatibility', name: formData.name, name2: person2.name,
         birthDate: birthDate1, birthDate2,
+        birthTime: birthTime1, birthPlace: formData.birthPlace,
+        birthTime2, birthPlace2: person2.birthPlace,
         concern: formData.concern
           ? `${COMPAT_TYPE_CONFIG[compatType].label}：${formData.concern}`
           : COMPAT_TYPE_CONFIG[compatType].label,
@@ -1225,6 +1231,25 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                     </select>
                   </div>
                 </div>
+                <div className="form-group">
+                  <label>出生時間 <span className="optional">(任意)</span></label>
+                  <div className="row-time">
+                    <select value={formData.birthHour} onChange={(e) => setFormData({ ...formData, birthHour: e.target.value })}>
+                      <option value="">--</option>
+                      {Array.from({ length: 24 }, (_, i) => i).map(h => (<option key={h} value={h}>{String(h).padStart(2, '0')}</option>))}
+                    </select>
+                    <span className="time-sep">時</span>
+                    <select value={formData.birthMinute} onChange={(e) => setFormData({ ...formData, birthMinute: e.target.value })}>
+                      <option value="">--</option>
+                      {[0, 15, 30, 45].map(m => (<option key={m} value={m}>{String(m).padStart(2, '0')}</option>))}
+                    </select>
+                    <span className="time-sep">分</span>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>出生地 <span className="optional">(任意)</span></label>
+                  <input type="text" value={formData.birthPlace} onChange={(e) => setFormData({ ...formData, birthPlace: e.target.value })} placeholder="例: 東京" maxLength={100} />
+                </div>
               </div>
 
               <div className="compat-divider">
@@ -1248,6 +1273,25 @@ ${isGeneral ? `4. loveStory（恋愛相性）: 300〜400文字。恋愛面での
                       {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (<option key={d} value={d}>{d}日</option>))}
                     </select>
                   </div>
+                </div>
+                <div className="form-group">
+                  <label>出生時間 <span className="optional">(任意)</span></label>
+                  <div className="row-time">
+                    <select value={person2.birthHour} onChange={(e) => setPerson2({ ...person2, birthHour: e.target.value })}>
+                      <option value="">--</option>
+                      {Array.from({ length: 24 }, (_, i) => i).map(h => (<option key={h} value={h}>{String(h).padStart(2, '0')}</option>))}
+                    </select>
+                    <span className="time-sep">時</span>
+                    <select value={person2.birthMinute} onChange={(e) => setPerson2({ ...person2, birthMinute: e.target.value })}>
+                      <option value="">--</option>
+                      {[0, 15, 30, 45].map(m => (<option key={m} value={m}>{String(m).padStart(2, '0')}</option>))}
+                    </select>
+                    <span className="time-sep">分</span>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>出生地 <span className="optional">(任意)</span></label>
+                  <input type="text" value={person2.birthPlace} onChange={(e) => setPerson2({ ...person2, birthPlace: e.target.value })} placeholder="例: 東京" maxLength={100} />
                 </div>
               </div>
 
