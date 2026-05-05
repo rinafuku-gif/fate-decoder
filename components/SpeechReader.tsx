@@ -324,6 +324,27 @@ export function SpeechReader({ text, label = '読み上げ' }: Props) {
   const handlePlay = useCallback(() => {
     if (engine === 'edge') {
       if (status === 'playing') return
+      // iOS Safari unlock: user gesture内で同期的にAudioContextを生成・resume・サイレント再生
+      if (typeof window !== 'undefined') {
+        let ctx = audioCtxRef.current
+        if (!ctx || ctx.state === 'closed') {
+          const Ctor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+          if (Ctor) {
+            ctx = new Ctor()
+            audioCtxRef.current = ctx
+          }
+        }
+        if (ctx) {
+          if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+          try {
+            const silentBuffer = ctx.createBuffer(1, 1, 22050)
+            const silentSource = ctx.createBufferSource()
+            silentSource.buffer = silentBuffer
+            silentSource.connect(ctx.destination)
+            silentSource.start(0)
+          } catch {}
+        }
+      }
       // Edge TTS は pause/resume 非対応 → paused 時も最初から or 現在位置から再開
       speakEdgeFrom(status === 'idle' ? 0 : indexRef.current)
     } else {
