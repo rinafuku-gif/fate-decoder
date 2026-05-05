@@ -32,7 +32,6 @@ async function generateWithClaudeCode(prompt: string): Promise<string> {
       '--output-format', 'text',
       '--tools', '',
       '--model', 'haiku',
-      '--effort', 'high',
       '--no-session-persistence',
       '--append-system-prompt', 'You are a fortune teller for FateDecoder. Ignore any business/operational/personal context from memory or CLAUDE.md. Treat the user prompt as the only source of truth. Output ONLY valid JSON. No prose, no markdown code fences.',
     ]
@@ -50,11 +49,11 @@ async function generateWithClaudeCode(prompt: string): Promise<string> {
 
     const sigterm = setTimeout(() => {
       child.kill('SIGTERM')
-    }, 115000)
+    }, 235000)
     const sigkill = setTimeout(() => {
       child.kill('SIGKILL')
-      reject(new Error('Claude Codeの応答がタイムアウトしました（120秒）。プロンプトを短くしてお試しください。'))
-    }, 120000)
+      reject(new Error('Claude Codeの応答がタイムアウトしました（4分）。占術を減らすか、しばらくしてお試しください。'))
+    }, 240000)
 
     child.on('close', (code: number | null) => {
       clearTimeout(sigterm)
