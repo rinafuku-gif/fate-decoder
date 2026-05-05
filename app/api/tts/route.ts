@@ -26,11 +26,7 @@ function checkRateLimit(ip: string): boolean {
 // ----------------------------------------
 const ALLOWED_VOICES = new Set([
   'ja-JP-NanamiNeural',
-  'ja-JP-AoiNeural',
-  'ja-JP-MayuNeural',
-  'ja-JP-ShioriNeural',
   'ja-JP-KeitaNeural',
-  'ja-JP-NaokiNeural',
 ])
 
 const DEFAULT_VOICE = 'ja-JP-NanamiNeural'
